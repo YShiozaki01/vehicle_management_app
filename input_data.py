@@ -1,7 +1,12 @@
 import PySimpleGUI as sg
+from select_item import SelectItem
 
 sg.theme("SystemDefault")
 DATABASE = "database/vehicle.db"
+SQL_DEPT = "SELECT code, name FROM M部署;"
+SQL_SITUATION = "SELECT code, name FROM M状況;"
+SQL_CARSIZE = "SELECT code, name FROM M車格;"
+SQL_CARTYPE = "SELECT code, name FROM M種別;"
 
 
 # ウインドウレイアウト
@@ -51,11 +56,29 @@ layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11))],
         [sg.Frame(title="登録番号", font=("Yu Gothic UI", 8), layout=frame_layout)],
         [sg.Push(), sg.B("登録", k="btn_register", size=(10, 0), font=("Yu Gothic UI", 8))]]
 window = sg.Window("車両入力", layout, font=("Yu Gothic UI", 8),
-                size=(280, 500), disable_close=False)
+                size=(300, 500), disable_close=False)
 window.finalize()
 
 while True:
     e, v = window.read()
+    if e == "-btn2-":
+        si1 = SelectItem(SQL_DEPT)
+        items = si1.open_sub_window()
+        if items:
+            window["-in2-"].update(items[1])
+            window["-cd1-"].update(items[0])
+    if e == "-btn3-":
+        si2 = SelectItem(SQL_CARTYPE)
+        items = si2.open_sub_window()
+        if items:
+            window["-in3-"].update(items[1])
+            window["-cd2-"].update(items[0])
+    if e == "-btn4-":
+        si3 = SelectItem(SQL_CARSIZE)
+        items = si3.open_sub_window()
+        if items:
+            window["-in8-"].update(items[1])
+            window["-cd3-"].update(items[0])
     if e == None:
         break
 window.close()
