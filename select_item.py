@@ -32,7 +32,6 @@ class SelectItem:
         ]
         win = sg.Window("選択", layout, font=("Yu Gothic UI", 10), size=(250, 240), disable_close=True)
         win.finalize()
-
         while True:
             e, v = win.read()
             if e == "-slc-":
@@ -43,3 +42,60 @@ class SelectItem:
                 break
         win.close()
         return item
+
+class SelectVehicle:
+    def __init__(self, company_use_number, body_number, department):
+        self.company_use_number = company_use_number
+        self.body_number = body_number
+        self.department = department
+
+    def get_record_1(self):
+        conn = get_db_connection()
+        cur = conn.cursor()
+        sql = f"""
+            SELECT a.*, b.department, c.name as dept_name FROM T車両台帳 as a
+            LEFT JOIN T車両履歴 as b
+            on a.company_use_number = b.company_use_number
+            LEFT JOIN M部署 as c on b.department = c.code
+            WHERE a.company_use_number like '%{self.company_use_number}%'
+            and a.body_number like '%{self.body_number}%'
+            and b.department like '%{self.department}%'
+            and b.existence = 1;
+            """
+        cur.execute(sql)
+        result = cur.fetchall()
+        items = []
+        for row in result:
+            r = []
+            r.append(row["company_use_number"])
+            r.append(row["body_number"])
+            r.append(row["dept_name"])
+            items.append(r)
+        return items
+
+    def open_sub_window(self):
+        items = self.get_record_1()
+        layout = [
+            [sg.Table(items, ["CODE", "BODYNUMBER", "DEPT"], font=("Yu Gothic UI", 10), justification="left", col_widths=(8, 20),
+                    auto_size_columns=False, select_mode=sg.TABLE_SELECT_MODE_BROWSE, num_rows=None,
+                    k="-slc-", enable_events=True)],
+            [sg.Push(), sg.B("キャンセル", font=("Yu Gothic UI", 9), size=(10, 0), k="-btn_cancel-"),]
+        ]
+        win = sg.Window("選択", layout, font=("Yu Gothic UI", 10), size=(350, 240), disable_close=True)
+        win.finalize()
+        while True:
+            e, v = win.read()
+            if e == "-slc-":
+                item = items[v["-slc-"][0]]
+                break
+            if e == "-btn_cancel-":
+                item = ""
+                break
+        win.close()
+        return item
+    
+
+if __name__ == "__main__":
+    sv = SelectVehicle()
+    rec = sv.open_sub_window()
+    print(rec)
