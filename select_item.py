@@ -27,17 +27,16 @@ class SelectItem:
         layout = [
             [sg.Table(item_list, ["ID", "NAME"], font=("Yu Gothic UI", 10), justification="left", col_widths=(8, 20),
                     auto_size_columns=False, select_mode=sg.TABLE_SELECT_MODE_BROWSE, num_rows=None,
-                    k="-slc-", enable_events=True)],
-            [sg.Push(), sg.B("キャンセル", font=("Yu Gothic UI", 9), size=(10, 0), k="-btn_cancel-"),]
+                    k="-slc-", enable_events=True)]
         ]
-        win = sg.Window("選択", layout, font=("Yu Gothic UI", 10), size=(250, 240), disable_close=True)
+        win = sg.Window("選択", layout, font=("Yu Gothic UI", 10), size=(250, 220), disable_close=False)
         win.finalize()
         while True:
             e, v = win.read()
             if e == "-slc-":
                 item = item_list[v["-slc-"][0]]
                 break
-            if e == "-btn_cancel-":
+            if e == None:
                 item = ""
                 break
         win.close()
@@ -78,17 +77,16 @@ class SelectVehicle:
         layout = [
             [sg.Table(items, ["CODE", "BODYNUMBER", "DEPT"], font=("Yu Gothic UI", 10), justification="left", col_widths=(8, 20),
                     auto_size_columns=False, select_mode=sg.TABLE_SELECT_MODE_BROWSE, num_rows=None,
-                    k="-slc-", enable_events=True)],
-            [sg.Push(), sg.B("キャンセル", font=("Yu Gothic UI", 9), size=(10, 0), k="-btn_cancel-"),]
+                    k="-slc-", enable_events=True)]
         ]
-        win = sg.Window("選択", layout, font=("Yu Gothic UI", 10), size=(350, 240), disable_close=True)
+        win = sg.Window("選択", layout, font=("Yu Gothic UI", 10), size=(350, 220), disable_close=False)
         win.finalize()
         while True:
             e, v = win.read()
             if e == "-slc-":
                 item = items[v["-slc-"][0]]
                 break
-            if e == "-btn_cancel-":
+            if e == None:
                 item = ""
                 break
         win.close()
