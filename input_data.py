@@ -95,8 +95,7 @@ def get_reset_data(company_use_number):
 # 全入力フィールドをクリア
 def clear_all():
     window["-correction-"].update(disabled=True)
-    window["-transfer-"].update(disabled=True)
-    window["-abolition-"].update(disabled=True)
+    window["-transfer_abolition-"].update(disabled=True)
     window["-in1-"].update("")
     window["-cd2-"].update("")
     window["-in3-"].update("")
@@ -133,6 +132,7 @@ def check_number(company_use_number):
     else:
         result = True
     return result
+
 
 # 3テーブルに入力データを挿入
 def insert_data(signup):
@@ -260,9 +260,7 @@ layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11)),],
          sg.B("検索", k="-btn_search-", size=(10, 0), font=("Yu Gothic UI", 8))],
         [sg.Radio("修正", group_id="destination", font=("Yu Gothic UI", 8), key="-correction-",
                   disabled=True, default=True),
-         sg.Radio("移動", group_id="destination", font=("Yu Gothic UI", 8), key="-transfer-",
-                  disabled=True),
-         sg.Radio("廃止", group_id="destination", font=("Yu Gothic UI", 8), key="-abolition-",
+         sg.Radio("移動・廃止", group_id="destination", font=("Yu Gothic UI", 8), key="-transfer_abolition-",
                   disabled=True),
          sg.Push(), sg.B("登録", k="-btn_register-", size=(10, 0), font=("Yu Gothic UI", 8))]]
 window = sg.Window("車両入力", layout, font=("Yu Gothic UI", 8),
@@ -301,10 +299,8 @@ while True:
             if v["-correction-"]:
                 delete_data(v["-in1-"])
                 insert_data(selection_mode)
-            elif v["-transfer-"]:
-                print("「移動」工事中")
-            elif v["-abolition-"]:
-                print("「廃止」工事中")
+            elif v["-transfer_abolition-"]:
+                print("「移動・廃止」工事中")
             selection_mode = False
         clear_all()
     if e == "-btn_search-":
@@ -316,8 +312,7 @@ while True:
         vinfo = sv.open_sub_window()
         if vinfo:
             window["-correction-"].update(disabled=False)
-            window["-transfer-"].update(disabled=False)
-            window["-abolition-"].update(disabled=False)
+            window["-transfer_abolition-"].update(disabled=False)
             record = get_reset_data(vinfo[0])
             window["-in1-"].update(record["company_use_number"])
             window["-cd2-"].update(record["classification"])
