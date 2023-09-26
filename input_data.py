@@ -123,7 +123,7 @@ def clear_all():
 # 指定した社番で、実在の車両レコードが存在するか
 def check_number(company_use_number):
     sql = f"""
-        SELECT * FROM T車両台帳 WHERE company_use_number  
+        SELECT * FROM T車両台帳 WHERE company_use_number = '{company_use_number}';  
         """
     conn = sqlite3.connect(DATABASE)
     cur = conn.cursor()
@@ -199,11 +199,11 @@ def insert_data(signup):
 # テーブルからレコードを削除
 def delete_data(company_use_number):
     sql = f"""
-        DELETE * FROM T車両台帳 WHERE company_use_number = '{company_use_number}'
+        DELETE FROM T車両台帳 WHERE company_use_number = '{company_use_number}'
         and existence = 1;
-        DELETE * FROM T車両履歴 WHERE company_use_number = '{company_use_number}'
+        DELETE FROM T車両履歴 WHERE company_use_number = '{company_use_number}'
         and existence = 1;
-        DELETE * FROM T登録番号 WHERE company_use_number = '{company_use_number}'
+        DELETE FROM T登録番号 WHERE company_use_number = '{company_use_number}'
         and existence = 1;
         """
     conn = sqlite3.connect(DATABASE)
@@ -256,7 +256,7 @@ layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11)),],
         [sg.T("実施日", size=(10, 0), font=("Yu Gothic UI", 8)),
          sg.I(k="-in13-", size=(20, 0), font=("Yu Gothic UI", 8))],
         [sg.Frame(title="登録番号", font=("Yu Gothic UI", 8), layout=frame_layout),
-         sg.I(k="-cd4-", font=("Yu Gothic UI", 8), size=(4, 0), visible=True),
+         sg.I(k="-cd4-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False),
          sg.B("検索", k="-btn_search-", size=(10, 0), font=("Yu Gothic UI", 8))],
         [sg.Radio("修正", group_id="destination", font=("Yu Gothic UI", 8), key="-correction-",
                   disabled=True, default=True),
@@ -293,7 +293,7 @@ while True:
     if e == "-btn_register-":
         if not selection_mode:
             reality = check_number(v["-in1-"])
-            if reality:
+            if reality == True:
                 sg.popup("登録済みの車番です。", title="確認", font=("Yu Gothic UI", 8))
             else:
                 insert_data(selection_mode)
