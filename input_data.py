@@ -71,6 +71,7 @@ def get_reset_data(company_use_number):
                 a.fuel_type,
                 d.department,
                 d.implementation_date,
+                d.circumstances,
                 e.name as dept_name,
                 f.basis_of_use,
                 f.class_number,
@@ -91,6 +92,127 @@ def get_reset_data(company_use_number):
     return result
 
 
+# 全入力フィールドをクリア
+def clear_all():
+    window["-correction-"].update(disabled=True)
+    window["-transfer-"].update(disabled=True)
+    window["-abolition-"].update(disabled=True)
+    window["-in1-"].update("")
+    window["-cd2-"].update("")
+    window["-in3-"].update("")
+    window["-in4-"].update("")
+    window["-in5-"].update("")
+    window["-in6-"].update("")
+    window["-in7-"].update("")
+    window["-cd3-"].update("")
+    window["-in8-"].update("")
+    window["-in9-"].update("")
+    window["-in10-"].update("")
+    window["-in11-"].update("")
+    window["-in12-"].update("")
+    window["-in1f-"].update("")
+    window["-in2f-"].update("")
+    window["-in3f-"].update("")
+    window["-in4f-"].update("")
+    window["-cd1-"].update("")
+    window["-in2-"].update("")
+    window["-in13-"].update("")
+    window["-cd4-"].update("")
+
+
+# 指定した社番で、実在の車両レコードが存在するか
+def check_number(company_use_number):
+    sql = f"""
+        SELECT * FROM T車両台帳 WHERE company_use_number  
+        """
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+    cur.execute(sql)
+    if len(cur.fetchall()) == 0:
+        result = False
+    else:
+        result = True
+    return result
+
+# 3テーブルに入力データを挿入
+def insert_data(signup):
+    new_id1 = get_id_number("T車両台帳")
+    new_id2 = get_id_number("T登録番号")
+    new_id3 = get_id_number("T車両履歴")
+    now_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # T車両台帳テーブルに挿入するデータを生成
+    car_info = []
+    car_info.append(new_id1)        # T車両台帳<id>
+    car_info.append(v["-in1-"])     # T車両台帳<company_use_number>
+    car_info.append(v["-cd2-"])     # T車両台帳<classification>
+    car_info.append(v["-in4-"])     # T車両台帳<maker>
+    car_info.append(v["-in5-"])     # T車両台帳<model_number>
+    car_info.append(v["-in6-"])     # T車両台帳<body_number>
+    car_info.append(v["-in7-"])     # T車両台帳<model_year>
+    car_info.append(v["-cd3-"])     # T車両台帳<car_size>
+    car_info.append(v["-in9-"])     # T車両台帳<load_capacity>
+    car_info.append(v["-in10-"])    # T車両台帳<specification>
+    car_info.append(v["-in11-"])    # T車両台帳<riding_capacity>
+    car_info.append(v["-in12-"])    # T車両台帳<fuel_type>
+    car_info.append(1)              # T車両台帳<existence>
+    car_info.append(now_dt)         # T車両台帳<update_date>
+    # T登録番号テーブルに挿入するデータを生成
+    reg_num = []
+    reg_num.append(new_id2)         # T登録番号<id>
+    reg_num.append(v["-in1-"])      # T登録番号<company_use_number>
+    reg_num.append(v["-in1f-"])     # T登録番号<basis_of_use>
+    reg_num.append(v["-in2f-"])     # T登録番号<class_number>
+    reg_num.append(v["-in3f-"])     # T登録番号<hiragana>
+    reg_num.append(v["-in4f-"])     # T登録番号<designated_number>
+    reg_num.append(1)               # T登録番号<existence>
+    reg_num.append(now_dt)          # T登録番号<update_date>
+    # T車両履歴テーブルに挿入するデータを生成
+    car_hist = []
+    car_hist.append(new_id3)        # T車両履歴<id>
+    car_hist.append(v["-in1-"])     # T車両履歴<company_use_number>
+    car_hist.append(v["-cd1-"])     # T車両履歴<department>
+    if signup:
+        car_hist.append(v["-cd4-"]) # T車両履歴<circumstances>（修正）
+    else:
+        car_hist.append("A")        # T車両履歴<circumstances>（新規）
+    car_hist.append(v["-in13-"])    # T車両履歴<implementation_date>
+    car_hist.append(1)              # T車両履歴<existence>
+    car_hist.append(now_dt)         # T車両履歴<update_date>
+    # テーブルにデータを挿入
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+    sql1 = f"""
+        INSERT INTO T車両台帳 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+    sql2 = f"""
+        INSERT INTO T登録番号 VALUES(?, ?, ?, ?, ?, ?, ?, ?);
+        """
+    sql3 = f"""
+        INSERT INTO T車両履歴 VALUES(?, ?, ?, ?, ?, ?, ?);
+        """
+    cur.execute(sql1, car_info)
+    cur.execute(sql2, reg_num)
+    cur.execute(sql3, car_hist)
+    conn.commit()
+
+
+# テーブルからレコードを削除
+def delete_data(company_use_number):
+    sql = f"""
+        DELETE * FROM T車両台帳 WHERE company_use_number = '{company_use_number}'
+        and existence = 1;
+        DELETE * FROM T車両履歴 WHERE company_use_number = '{company_use_number}'
+        and existence = 1;
+        DELETE * FROM T登録番号 WHERE company_use_number = '{company_use_number}'
+        and existence = 1;
+        """
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+    cur.executescript(sql)
+    conn.commit()
+
+
+# T車両台帳とT登録番号から    
 # ウインドウレイアウト
 frame_layout = [[sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8)),
                  sg.I(k="-in1f-", size=(10, 0), font=("Yu Gothic UI", 8))],
@@ -100,7 +222,7 @@ frame_layout = [[sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8))
                  sg.I(k="-in3f-", size=(5, 0), font=("Yu Gothic UI", 8))],
                 [sg.T("指定番号", size=(10, 0), font=("Yu Gothic UI", 8)),
                  sg.I(k="-in4f-", size=(10, 0), font=("Yu Gothic UI", 8))]]
-layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11))],
+layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11)),],
         [sg.T("社番", size=(10, 0), font=("Yu Gothic UI", 8), text_color="#FF0000"),
          sg.I(k="-in1-", size=(10, 0), font=("Yu Gothic UI", 8))],
         [sg.T("部署", size=(10, 0), font=("Yu Gothic UI", 8), text_color="#FF0000"),
@@ -133,14 +255,21 @@ layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11))],
          sg.I(k="-in12-", size=(20, 0), font=("Yu Gothic UI", 8))],
         [sg.T("実施日", size=(10, 0), font=("Yu Gothic UI", 8)),
          sg.I(k="-in13-", size=(20, 0), font=("Yu Gothic UI", 8))],
-        [sg.Frame(title="登録番号", font=("Yu Gothic UI", 8), layout=frame_layout)],
-        [sg.B("検索", k="-btn_search-", size=(10, 0), font=("Yu Gothic UI", 8)),
-         sg.Push(),
-         sg.B("登録", k="-btn_register-", size=(10, 0), font=("Yu Gothic UI", 8))]]
+        [sg.Frame(title="登録番号", font=("Yu Gothic UI", 8), layout=frame_layout),
+         sg.I(k="-cd4-", font=("Yu Gothic UI", 8), size=(4, 0), visible=True),
+         sg.B("検索", k="-btn_search-", size=(10, 0), font=("Yu Gothic UI", 8))],
+        [sg.Radio("修正", group_id="destination", font=("Yu Gothic UI", 8), key="-correction-",
+                  disabled=True, default=True),
+         sg.Radio("移動", group_id="destination", font=("Yu Gothic UI", 8), key="-transfer-",
+                  disabled=True),
+         sg.Radio("廃止", group_id="destination", font=("Yu Gothic UI", 8), key="-abolition-",
+                  disabled=True),
+         sg.Push(), sg.B("登録", k="-btn_register-", size=(10, 0), font=("Yu Gothic UI", 8))]]
 window = sg.Window("車両入力", layout, font=("Yu Gothic UI", 8),
                 size=(300, 500), disable_close=False)
 window.finalize()
 
+selection_mode = False
 while True:
     e, v = window.read()
     if e == "-btn1-":
@@ -162,68 +291,33 @@ while True:
             window["-in8-"].update(items[1])
             window["-cd3-"].update(items[0])
     if e == "-btn_register-":
-        new_id1 = get_id_number("T車両台帳")
-        new_id2 = get_id_number("T登録番号")
-        new_id3 = get_id_number("T車両履歴")
-        now_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # T車両台帳テーブルに挿入するデータを生成
-        car_info = []
-        car_info.append(new_id1)        # T車両台帳<id>
-        car_info.append(v["-in1-"])     # T車両台帳<company_use_number>
-        car_info.append(v["-cd2-"])     # T車両台帳<classification>
-        car_info.append(v["-in4-"])     # T車両台帳<maker>
-        car_info.append(v["-in5-"])     # T車両台帳<model_number>
-        car_info.append(v["-in6-"])     # T車両台帳<body_number>
-        car_info.append(v["-in7-"])     # T車両台帳<model_year>
-        car_info.append(v["-cd3-"])     # T車両台帳<car_size>
-        car_info.append(v["-in9-"])     # T車両台帳<load_capacity>
-        car_info.append(v["-in10-"])    # T車両台帳<specification>
-        car_info.append(v["-in11-"])    # T車両台帳<riding_capacity>
-        car_info.append(v["-in12-"])    # T車両台帳<fuel_type>
-        car_info.append(1)              # T車両台帳<existence>
-        car_info.append(now_dt)         # T車両台帳<update_date>
-        # T登録番号テーブルに挿入するデータを生成
-        reg_num = []
-        reg_num.append(new_id2)         # T登録番号<id>
-        reg_num.append(v["-in1-"])      # T登録番号<company_use_number>
-        reg_num.append(v["-in1f-"])     # T登録番号<basis_of_use>
-        reg_num.append(v["-in2f-"])     # T登録番号<class_number>
-        reg_num.append(v["-in3f-"])     # T登録番号<hiragana>
-        reg_num.append(v["-in4f-"])     # T登録番号<designated_number>
-        reg_num.append(1)               # T登録番号<existence>
-        reg_num.append(now_dt)          # T登録番号<update_date>
-        # T車両履歴テーブルに挿入するデータを生成
-        car_hist = []
-        car_hist.append(new_id3)        # T車両履歴<id>
-        car_hist.append(v["-in1-"])     # T車両履歴<company_use_number>
-        car_hist.append(v["-cd1-"])     # T車両履歴<department>
-        car_hist.append("A")            # T車両履歴<circumstances>
-        car_hist.append(v["-in13-"])    # T車両履歴<implementation_date>
-        car_hist.append(1)              # T車両履歴<existence>
-        car_hist.append(now_dt)         # T車両履歴<update_date>
-        # テーブルにデータを挿入
-        conn = sqlite3.connect(DATABASE)
-        cur = conn.cursor()
-        sql1 = f"""
-            INSERT INTO T車両台帳 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-            """
-        sql2 = f"""
-            INSERT INTO T登録番号 VALUES(?, ?, ?, ?, ?, ?, ?, ?);
-            """
-        sql3 = f"""
-            INSERT INTO T車両履歴 VALUES(?, ?, ?, ?, ?, ?, ?);
-            """
-        cur.execute(sql1, car_info)
-        cur.execute(sql2, reg_num)
-        cur.execute(sql3, car_hist)
-        conn.commit()
+        if not selection_mode:
+            reality = check_number(v["-in1-"])
+            if reality:
+                sg.popup("登録済みの車番です。", title="確認", font=("Yu Gothic UI", 8))
+            else:
+                insert_data(selection_mode)
+        if selection_mode:
+            if v["-correction-"]:
+                delete_data(v["-in1-"])
+                insert_data(selection_mode)
+            elif v["-transfer-"]:
+                print("「移動」工事中")
+            elif v["-abolition-"]:
+                print("「廃止」工事中")
+            selection_mode = False
+        clear_all()
     if e == "-btn_search-":
+        selection_mode = True
         company_use_number = v["-in1-"] if v["-in1-"] else "%"
         body_number = v["-in6-"] if v["-in6-"] else "%"
         department = v["-cd1-"] if v["-cd1-"] else "%"
         sv = SelectVehicle(company_use_number, body_number, department)
         vinfo = sv.open_sub_window()
         if vinfo:
+            window["-correction-"].update(disabled=False)
+            window["-transfer-"].update(disabled=False)
+            window["-abolition-"].update(disabled=False)
             record = get_reset_data(vinfo[0])
             window["-in1-"].update(record["company_use_number"])
             window["-cd2-"].update(record["classification"])
@@ -245,6 +339,7 @@ while True:
             window["-cd1-"].update(record["department"])
             window["-in2-"].update(record["dept_name"])
             window["-in13-"].update(record["implementation_date"])
+            window["-cd4-"].update(record["circumstances"])
     if e == None:
         break
 window.close()
