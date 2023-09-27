@@ -43,10 +43,12 @@ class SelectItem:
         return item
 
 class SelectVehicle:
-    def __init__(self, company_use_number, body_number, department):
+    def __init__(self, company_use_number, body_number,
+                 department, chk_abolition):
         self.company_use_number = company_use_number
         self.body_number = body_number
         self.department = department
+        self.chk_abolition = chk_abolition
 
     def get_record_1(self):
         conn = get_db_connection()
@@ -59,8 +61,11 @@ class SelectVehicle:
             WHERE a.company_use_number like '%{self.company_use_number}%'
             and a.body_number like '%{self.body_number}%'
             and b.department like '%{self.department}%'
-            and b.existence = 1;
             """
+        if self.chk_abolition == False:
+            sql = sql + " and b.existence = 1;"
+        else:
+            sql = sql + " and b.circumstances = 'D';"
         cur.execute(sql)
         result = cur.fetchall()
         items = []

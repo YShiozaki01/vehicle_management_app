@@ -60,4 +60,11 @@ class PrtdataGen:
 
     # TPrintWorkへ作成条件を挿入
     def insert_pw(self):
-        sql = """"""
+        sql = """
+            INSERT INTO TPrintWork VALUES(?, ?, ?, ?);
+            """
+        conn = sqlite3.connect(DATABASE)
+        cur = conn.cursor()
+        cur.execute(sql, self.prt_conditions)
+        conn.commit()
+        

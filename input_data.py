@@ -4,6 +4,7 @@ import datetime
 import pandas as pd
 from select_item import SelectItem, SelectVehicle
 from transfer_abolition import TrfAbol
+from application_form import PrtdataGen
 
 sg.theme("SystemDefault")
 DATABASE = "database/database.db"
@@ -53,42 +54,78 @@ def get_recd(table_name, cun="%", ):
 
 
 # 入力フォームに再セットするデータを生成
-def get_reset_data(company_use_number):
+def get_reset_data(company_use_number, chk_abolition):
     conn = get_db_connection()
     cur = conn.cursor()
-    sql = f"""
-            SELECT
-                a.company_use_number,
-                a.classification,
-                b.name as class_name,
-                a.maker,
-                a.model_number,
-                a.body_number,
-                a.model_year,
-                a.car_size,
-                c.name as size_name,
-                a.load_capacity,
-                a.specification,
-                a.riding_capacity,
-                a.fuel_type,
-                d.department,
-                d.implementation_date,
-                d.circumstances,
-                e.name as dept_name,
-                f.basis_of_use,
-                f.class_number,
-                f.hiragana,
-                f.designated_number
-            FROM T車両台帳 as a
-            LEFT JOIN M種別 as b on a.classification = b.code
-            LEFT JOIN M車格 as c on a.car_size = c.code
-            LEFT JOIN T車両履歴 as d on a.company_use_number = d.company_use_number
-            LEFT JOIN M部署 as e on d.department = e.code
-            LEFT JOIN T登録番号 as f on a.company_use_number = f.company_use_number
-            WHERE a.company_use_number = '{company_use_number}'
-            and d.existence = 1
-            and f.existence = 1;
-        """
+    if chk_abolition == False:
+        sql = f"""
+                SELECT
+                    a.company_use_number,
+                    a.classification,
+                    b.name as class_name,
+                    a.maker,
+                    a.model_number,
+                    a.body_number,
+                    a.model_year,
+                    a.car_size,
+                    c.name as size_name,
+                    a.load_capacity,
+                    a.specification,
+                    a.riding_capacity,
+                    a.fuel_type,
+                    d.department,
+                    d.implementation_date,
+                    d.circumstances,
+                    e.name as dept_name,
+                    f.basis_of_use,
+                    f.class_number,
+                    f.hiragana,
+                    f.designated_number
+                FROM T車両台帳 as a
+                LEFT JOIN M種別 as b on a.classification = b.code
+                LEFT JOIN M車格 as c on a.car_size = c.code
+                LEFT JOIN T車両履歴 as d on a.company_use_number = d.company_use_number
+                LEFT JOIN M部署 as e on d.department = e.code
+                LEFT JOIN T登録番号 as f on a.company_use_number = f.company_use_number
+                WHERE a.company_use_number = '{company_use_number}'
+                and d.existence = 1
+                and f.existence = 1;
+            """
+    else:
+        sql = f"""
+                SELECT
+                    a.company_use_number,
+                    a.classification,
+                    b.name as class_name,
+                    a.maker,
+                    a.model_number,
+                    a.body_number,
+                    a.model_year,
+                    a.car_size,
+                    c.name as size_name,
+                    a.load_capacity,
+                    a.specification,
+                    a.riding_capacity,
+                    a.fuel_type,
+                    d.department,
+                    d.implementation_date,
+                    d.circumstances,
+                    e.name as dept_name,
+                    f.basis_of_use,
+                    f.class_number,
+                    f.hiragana,
+                    f.designated_number
+                FROM T車両台帳 as a
+                LEFT JOIN M種別 as b on a.classification = b.code
+                LEFT JOIN M車格 as c on a.car_size = c.code
+                LEFT JOIN T車両履歴 as d on a.company_use_number = d.company_use_number
+                LEFT JOIN M部署 as e on d.department = e.code
+                LEFT JOIN (SELECT * FROM T登録番号 WHERE id =
+                    (SELECT max(id) FROM T登録番号 WHERE company_use_number = '{company_use_number}')) 
+                    as f on a.company_use_number = f.company_use_number
+                WHERE a.company_use_number = '{company_use_number}'
+                and d.circumstances = 'D';
+            """
     cur.execute(sql)
     result = cur.fetchone()
     return result
@@ -119,6 +156,11 @@ def clear_all():
     window["-in2-"].update("")
     window["-in13-"].update("")
     window["-cd4-"].update("")
+    window["-chk_abolition-"].update(False)
+    window["-in1pf-"].update("")
+    window["-prt1-"].update(True)
+    window["-correction-"].update(True)
+    window["-in1-"].set_focus(True)
 
 
 # 指定した社番で、実在の車両レコードが存在するか
@@ -226,9 +268,31 @@ def change_date(value):
     return format_date
 
 
+# フィールドの使用不可を解除
+def release_disabled():
+    window["-correction-"].update(disabled=False)
+    window["-transfer_abolition-"].update(disabled=False)
+    window["-in1pf-"].update(disabled=False)
+    window["-prt1-"].update(disabled=False)
+    window["-prt2-"].update(disabled=False)
+    window["-prt3-"].update(disabled=False)
+    window["-btn_prtadd-"].update(disabled=False)
+
+
+# フィールドの使用不可を再設定
+def reset_disabled():
+    window["-correction-"].update(disabled=True)
+    window["-transfer_abolition-"].update(disabled=True)
+    window["-in1pf-"].update(disabled=True)
+    window["-prt1-"].update(disabled=True)
+    window["-prt2-"].update(disabled=True)
+    window["-prt3-"].update(disabled=True)
+    window["-btn_prtadd-"].update(disabled=True)
+    
+    
 # ウインドウレイアウト
 prt_frame_layout = [[sg.T("実施日", size=(10, 0), font=("Yu Gothic UI", 8)),
-                    sg.I(k="-in1pf-", size=(10, 0), font=("Yu Gothic UI", 8)),
+                    sg.I(k="-in1pf-", size=(10, 0), font=("Yu Gothic UI", 8), disabled=True),
                     sg.T("時点", font=("Yu Gothic UI", 8))],
                     [sg.Radio("増車", group_id="printmenu", font=("Yu Gothic UI", 8), key="-prt1-",
                               disabled=True, default=True),
@@ -236,7 +300,8 @@ prt_frame_layout = [[sg.T("実施日", size=(10, 0), font=("Yu Gothic UI", 8)),
                               disabled=True),
                      sg.Radio("営配", group_id="printmenu", font=("Yu Gothic UI", 8), key="-prt3-",
                               disabled=True),
-                     sg.Push(), sg.B("追加", k="-btn_prtadd-", size=(6, 0), font=("Yu Gothic UI", 8))]]
+                     sg.Push(), sg.B("追加", k="-btn_prtadd-", size=(6, 0), font=("Yu Gothic UI", 8),
+                                     disabled=True)]]
 frame_layout = [[sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8)),
                  sg.I(k="-in1f-", size=(10, 0), font=("Yu Gothic UI", 8))],
                 [sg.T("分類番号", size=(10, 0), font=("Yu Gothic UI", 8)),
@@ -247,7 +312,8 @@ frame_layout = [[sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8))
                  sg.I(k="-in4f-", size=(10, 0), font=("Yu Gothic UI", 8))]]
 layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11)),],
         [sg.T("社番", size=(10, 0), font=("Yu Gothic UI", 8), text_color="#FF0000"),
-         sg.I(k="-in1-", size=(15, 0), font=("Yu Gothic UI", 8))],
+         sg.I(k="-in1-", size=(15, 0), font=("Yu Gothic UI", 8)),
+         sg.Checkbox("廃止登録済み", key="-chk_abolition-", enable_events=True)],
         [sg.T("部署", size=(10, 0), font=("Yu Gothic UI", 8), text_color="#FF0000"),
          sg.B("検索", k="-btn1-", font=("Yu Gothic UI", 8)),
          sg.I(k="-in2-", font=("Yu Gothic UI", 8), size=(20, 0), readonly=True),
@@ -388,18 +454,19 @@ while True:
                 ta.open_sub_window2()
                 # print("「移動・廃止」工事中")
             selection_mode = False
+            reset_disabled()
         clear_all()
     if e == "-btn_search-":
         selection_mode = True
         company_use_number = v["-in1-"] if v["-in1-"] else "%"
         body_number = v["-in6-"] if v["-in6-"] else "%"
         department = v["-cd1-"] if v["-cd1-"] else "%"
-        sv = SelectVehicle(company_use_number, body_number, department)
+        sv = SelectVehicle(company_use_number, body_number, department,
+                           v["-chk_abolition-"])
         vinfo = sv.open_sub_window()
         if vinfo:
-            window["-correction-"].update(disabled=False)
-            window["-transfer_abolition-"].update(disabled=False)
-            record = get_reset_data(vinfo[0])
+            release_disabled()
+            record = get_reset_data(vinfo[0], v["-chk_abolition-"])
             window["-in1-"].update(record["company_use_number"])
             window["-cd2-"].update(record["classification"])
             window["-in3-"].update(record["class_name"])
@@ -431,6 +498,10 @@ while True:
         elif v["-prt3-"]:
             prt_no = 3
         prt_conditions = [v["-in1-"], v["-in13-"], v["-cd1-"], prt_no]
+        pg = PrtdataGen(prt_conditions)
+        pg.insert_pw()
+        reset_disabled()
+        clear_all()
     if e == None:
         break
 window.close()
