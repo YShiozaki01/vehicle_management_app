@@ -29,7 +29,7 @@ class SelectItem:
                     auto_size_columns=False, select_mode=sg.TABLE_SELECT_MODE_BROWSE, num_rows=None,
                     k="-slc-", enable_events=True)]
         ]
-        win = sg.Window("選択", layout, font=("Yu Gothic UI", 10), size=(250, 220), disable_close=False)
+        win = sg.Window("選択", layout, font=("Yu Gothic UI", 8), size=(250, 220), disable_close=False)
         win.finalize()
         while True:
             e, v = win.read()

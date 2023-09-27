@@ -1,7 +1,9 @@
 import PySimpleGUI as sg
 import sqlite3
 import datetime
+import pandas as pd
 from select_item import SelectItem, SelectVehicle
+from transfer_abolition import TrfAbol
 
 sg.theme("SystemDefault")
 DATABASE = "database/database.db"
@@ -212,7 +214,18 @@ def delete_data(company_use_number):
     conn.commit()
 
 
-# T車両台帳とT登録番号から    
+# 8桁数字を日付に変換
+def change_date(value):
+    # 入力された値が8桁数字かチェック（数値ではなく整数文字か判定）
+    target = value
+    if target.isdigit() and len(target) == 8:
+        date = pd.to_datetime(target)
+        format_date = format(date, "%Y/%m/%d")
+    else:
+        format_date = ""
+    return format_date
+
+
 # ウインドウレイアウト
 frame_layout = [[sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8)),
                  sg.I(k="-in1f-", size=(10, 0), font=("Yu Gothic UI", 8))],
@@ -224,7 +237,7 @@ frame_layout = [[sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8))
                  sg.I(k="-in4f-", size=(10, 0), font=("Yu Gothic UI", 8))]]
 layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11)),],
         [sg.T("社番", size=(10, 0), font=("Yu Gothic UI", 8), text_color="#FF0000"),
-         sg.I(k="-in1-", size=(10, 0), font=("Yu Gothic UI", 8))],
+         sg.I(k="-in1-", size=(15, 0), font=("Yu Gothic UI", 8))],
         [sg.T("部署", size=(10, 0), font=("Yu Gothic UI", 8), text_color="#FF0000"),
          sg.B("検索", k="-btn1-", font=("Yu Gothic UI", 8)),
          sg.I(k="-in2-", font=("Yu Gothic UI", 8), size=(20, 0), readonly=True),
@@ -256,20 +269,80 @@ layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11)),],
         [sg.T("実施日", size=(10, 0), font=("Yu Gothic UI", 8)),
          sg.I(k="-in13-", size=(20, 0), font=("Yu Gothic UI", 8))],
         [sg.Frame(title="登録番号", font=("Yu Gothic UI", 8), layout=frame_layout),
-         sg.I(k="-cd4-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False),
-         sg.B("検索", k="-btn_search-", size=(10, 0), font=("Yu Gothic UI", 8))],
-        [sg.Radio("修正", group_id="process1", font=("Yu Gothic UI", 8), key="-correction-",
+         sg.I(k="-cd4-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False), sg.Push(),
+         sg.B("検索", k="-btn_search-", size=(6, 0), font=("Yu Gothic UI", 8))],
+        [sg.B("取消", k="-btn_cancel-", size=(6, 0), font=("Yu Gothic UI", 8)), sg.Push(), 
+         sg.Radio("修正", group_id="process1", font=("Yu Gothic UI", 8), key="-correction-",
                   disabled=True, default=True),
          sg.Radio("移動・廃止", group_id="process1", font=("Yu Gothic UI", 8), key="-transfer_abolition-",
                   disabled=True),
-         sg.Push(), sg.B("登録", k="-btn_register-", size=(10, 0), font=("Yu Gothic UI", 8))]]
+         sg.B("登録", k="-btn_register-", size=(6, 0), font=("Yu Gothic UI", 8))]]
 window = sg.Window("車両入力", layout, font=("Yu Gothic UI", 8),
-                size=(300, 500), disable_close=False)
+                size=(310, 500), disable_close=False)
 window.finalize()
+
+# エンターキー押下
+window["-in1-"].bind("<Return>", "_r")
+window["-btn1-"].bind("<Return>", "_r")
+window["-btn2-"].bind("<Return>", "_r")
+window["-in4-"].bind("<Return>", "_r")
+window["-in5-"].bind("<Return>", "_r")
+window["-in6-"].bind("<Return>", "_r")
+window["-in7-"].bind("<Return>", "_r")
+window["-btn3-"].bind("<Return>", "_r")
+window["-in9-"].bind("<Return>", "_r")
+window["-in10-"].bind("<Return>", "_r")
+window["-in11-"].bind("<Return>", "_r")
+window["-in12-"].bind("<Return>", "_r")
+window["-in13-"].bind("<Return>", "_r")
+window["-in1f-"].bind("<Return>", "_r")
+window["-in2f-"].bind("<Return>", "_r")
+window["-in3f-"].bind("<Return>", "_r")
+window["-in4f-"].bind("<Return>", "_r")
+window["-in1-"].SetFocus(True)
 
 selection_mode = False
 while True:
     e, v = window.read()
+    if e == "-in1-_r":
+        window["-btn1-"].set_focus(True)
+    if e == "-btn1-_r":
+        window["-btn2-"].set_focus(True)
+    if e == "-btn2-_r":
+        window["-in4-"].set_focus(True)
+    if e == "-in4-_r":
+        window["-in5-"].set_focus(True)
+    if e == "-in5-_r":
+        window["-in6-"].set_focus(True)
+    if e == "-in6-_r":
+        window["-in7-"].set_focus(True)
+    if e == "-in7-_r":
+        window["-btn3-"].set_focus(True)
+    if e == "-btn3-_r":
+        window["-in9-"].set_focus(True)
+    if e == "-in9-_r":
+        window["-in10-"].set_focus(True)
+    if e == "-in10-_r":
+        window["-in11-"].set_focus(True)
+    if e == "-in11-_r":
+        window["-in12-"].set_focus(True)
+    if e == "-in12-_r":
+        window["-in13-"].set_focus(True)
+    if e == "-in13-_r":
+        strdate = change_date(v["-in13-"])
+        if strdate == "":
+            sg.popup("8桁数字で入力してください", font=("Yu Gothic UI", 8))
+        else:
+            window["-in13-"].update(strdate)
+            window["-in1f-"].set_focus(True)
+    if e == "-in1f-_r":
+        window["-in2f-"].set_focus(True)
+    if e == "-in2f-_r":
+        window["-in3f-"].set_focus(True)
+    if e == "-in3f-_r":
+        window["-in4f-"].set_focus(True)
+    if e == "-in4f-_r":
+        window["-btn_register-"].set_focus(True)
     if e == "-btn1-":
         si1 = SelectItem(SQL_DEPT)
         items = si1.open_sub_window()
@@ -300,7 +373,9 @@ while True:
                 delete_data(v["-in1-"])
                 insert_data(selection_mode)
             elif v["-transfer_abolition-"]:
-                print("「移動・廃止」工事中")
+                ta = TrfAbol(v["-in1-"], v["-in2-"], v["-cd1-"])
+                ta.open_sub_window2()
+                # print("「移動・廃止」工事中")
             selection_mode = False
         clear_all()
     if e == "-btn_search-":
@@ -335,6 +410,8 @@ while True:
             window["-in2-"].update(record["dept_name"])
             window["-in13-"].update(record["implementation_date"])
             window["-cd4-"].update(record["circumstances"])
+    if e == "-btn_cancel-":
+        clear_all()
     if e == None:
         break
 window.close()
