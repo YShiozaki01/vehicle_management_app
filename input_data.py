@@ -227,6 +227,16 @@ def change_date(value):
 
 
 # ウインドウレイアウト
+prt_frame_layout = [[sg.T("実施日", size=(10, 0), font=("Yu Gothic UI", 8)),
+                    sg.I(k="-in1pf-", size=(10, 0), font=("Yu Gothic UI", 8)),
+                    sg.T("時点", font=("Yu Gothic UI", 8))],
+                    [sg.Radio("増車", group_id="printmenu", font=("Yu Gothic UI", 8), key="-prt1-",
+                              disabled=True, default=True),
+                     sg.Radio("減車", group_id="printmenu", font=("Yu Gothic UI", 8), key="-prt2-",
+                              disabled=True),
+                     sg.Radio("営配", group_id="printmenu", font=("Yu Gothic UI", 8), key="-prt3-",
+                              disabled=True),
+                     sg.Push(), sg.B("追加", k="-btn_prtadd-", size=(6, 0), font=("Yu Gothic UI", 8))]]
 frame_layout = [[sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8)),
                  sg.I(k="-in1f-", size=(10, 0), font=("Yu Gothic UI", 8))],
                 [sg.T("分類番号", size=(10, 0), font=("Yu Gothic UI", 8)),
@@ -276,9 +286,10 @@ layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11)),],
                   disabled=True, default=True),
          sg.Radio("移動・廃止", group_id="process1", font=("Yu Gothic UI", 8), key="-transfer_abolition-",
                   disabled=True),
-         sg.B("登録", k="-btn_register-", size=(6, 0), font=("Yu Gothic UI", 8))]]
+         sg.B("登録", k="-btn_register-", size=(6, 0), font=("Yu Gothic UI", 8))],
+        [sg.Frame(title="申請書印刷", font=("Yu Gothic UI", 8), size=(280,70), layout=prt_frame_layout)]]
 window = sg.Window("車両入力", layout, font=("Yu Gothic UI", 8),
-                size=(310, 500), disable_close=False)
+                size=(310, 580), disable_close=False)
 window.finalize()
 
 # エンターキー押下
@@ -412,6 +423,14 @@ while True:
             window["-cd4-"].update(record["circumstances"])
     if e == "-btn_cancel-":
         clear_all()
+    if e == "-btn_prtadd-":
+        if v["-prt1-"]:
+            prt_no = 1
+        elif v["-prt2-"]:
+            prt_no = 2
+        elif v["-prt3-"]:
+            prt_no = 3
+        prt_conditions = [v["-in1-"], v["-in13-"], v["-cd1-"], prt_no]
     if e == None:
         break
 window.close()
