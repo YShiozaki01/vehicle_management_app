@@ -42,11 +42,15 @@ def get_id_number(table_name):
 
 
 # 車両3テーブルのデータを取得
-def get_recd(table_name, cun="%", ):
+def get_recd(
+    table_name,
+    cun="%",
+):
     conn = get_db_connection()
     cur = conn.cursor()
     sql = f"""
-        SELECT * FROM {table_name} WHERE company_use_number = '{cun}' and existence = 1;
+        SELECT * FROM {table_name}
+        WHERE company_use_number = '{cun}' and existence = 1;
         """
     cur.execute(sql)
     result = cur.fetchone()
@@ -57,7 +61,7 @@ def get_recd(table_name, cun="%", ):
 def get_reset_data(company_use_number, chk_abolition):
     conn = get_db_connection()
     cur = conn.cursor()
-    if chk_abolition == False:
+    if not chk_abolition:
         sql = f"""
                 SELECT
                     a.company_use_number,
@@ -84,9 +88,11 @@ def get_reset_data(company_use_number, chk_abolition):
                 FROM T車両台帳 as a
                 LEFT JOIN M種別 as b on a.classification = b.code
                 LEFT JOIN M車格 as c on a.car_size = c.code
-                LEFT JOIN T車両履歴 as d on a.company_use_number = d.company_use_number
+                LEFT JOIN T車両履歴 as d
+                on a.company_use_number = d.company_use_number
                 LEFT JOIN M部署 as e on d.department = e.code
-                LEFT JOIN T登録番号 as f on a.company_use_number = f.company_use_number
+                LEFT JOIN T登録番号 as f
+                on a.company_use_number = f.company_use_number
                 WHERE a.company_use_number = '{company_use_number}'
                 and d.existence = 1
                 and f.existence = 1;
@@ -118,10 +124,14 @@ def get_reset_data(company_use_number, chk_abolition):
                 FROM T車両台帳 as a
                 LEFT JOIN M種別 as b on a.classification = b.code
                 LEFT JOIN M車格 as c on a.car_size = c.code
-                LEFT JOIN T車両履歴 as d on a.company_use_number = d.company_use_number
+                LEFT JOIN T車両履歴 as d
+                on a.company_use_number = d.company_use_number
                 LEFT JOIN M部署 as e on d.department = e.code
                 LEFT JOIN (SELECT * FROM T登録番号 WHERE id =
-                    (SELECT max(id) FROM T登録番号 WHERE company_use_number = '{company_use_number}')) 
+                    (
+                    SELECT max(id) FROM T登録番号
+                    WHERE company_use_number = '{company_use_number}')
+                    ) 
                     as f on a.company_use_number = f.company_use_number
                 WHERE a.company_use_number = '{company_use_number}'
                 and d.circumstances = 'D';
@@ -184,54 +194,49 @@ def insert_data(signup):
     now_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     # T車両台帳テーブルに挿入するデータを生成
     car_info = []
-    car_info.append(new_id1)        # T車両台帳<id>
-    car_info.append(v["-in1-"])     # T車両台帳<company_use_number>
-    car_info.append(v["-cd2-"])     # T車両台帳<classification>
-    car_info.append(v["-in4-"])     # T車両台帳<maker>
-    car_info.append(v["-in5-"])     # T車両台帳<model_number>
-    car_info.append(v["-in6-"])     # T車両台帳<body_number>
-    car_info.append(v["-in7-"])     # T車両台帳<model_year>
-    car_info.append(v["-cd3-"])     # T車両台帳<car_size>
-    car_info.append(v["-in9-"])     # T車両台帳<load_capacity>
-    car_info.append(v["-in10-"])    # T車両台帳<specification>
-    car_info.append(v["-in11-"])    # T車両台帳<riding_capacity>
-    car_info.append(v["-in12-"])    # T車両台帳<fuel_type>
-    car_info.append(1)              # T車両台帳<existence>
-    car_info.append(now_dt)         # T車両台帳<update_date>
+    car_info.append(new_id1)  # T車両台帳<id>
+    car_info.append(v["-in1-"])  # T車両台帳<company_use_number>
+    car_info.append(v["-cd2-"])  # T車両台帳<classification>
+    car_info.append(v["-in4-"])  # T車両台帳<maker>
+    car_info.append(v["-in5-"])  # T車両台帳<model_number>
+    car_info.append(v["-in6-"])  # T車両台帳<body_number>
+    car_info.append(v["-in7-"])  # T車両台帳<model_year>
+    car_info.append(v["-cd3-"])  # T車両台帳<car_size>
+    car_info.append(v["-in9-"])  # T車両台帳<load_capacity>
+    car_info.append(v["-in10-"])  # T車両台帳<specification>
+    car_info.append(v["-in11-"])  # T車両台帳<riding_capacity>
+    car_info.append(v["-in12-"])  # T車両台帳<fuel_type>
+    car_info.append(1)  # T車両台帳<existence>
+    car_info.append(now_dt)  # T車両台帳<update_date>
     # T登録番号テーブルに挿入するデータを生成
     reg_num = []
-    reg_num.append(new_id2)         # T登録番号<id>
-    reg_num.append(v["-in1-"])      # T登録番号<company_use_number>
-    reg_num.append(v["-in1f-"])     # T登録番号<basis_of_use>
-    reg_num.append(v["-in2f-"])     # T登録番号<class_number>
-    reg_num.append(v["-in3f-"])     # T登録番号<hiragana>
-    reg_num.append(v["-in4f-"])     # T登録番号<designated_number>
-    reg_num.append(1)               # T登録番号<existence>
-    reg_num.append(now_dt)          # T登録番号<update_date>
+    reg_num.append(new_id2)  # T登録番号<id>
+    reg_num.append(v["-in1-"])  # T登録番号<company_use_number>
+    reg_num.append(v["-in1f-"])  # T登録番号<basis_of_use>
+    reg_num.append(v["-in2f-"])  # T登録番号<class_number>
+    reg_num.append(v["-in3f-"])  # T登録番号<hiragana>
+    reg_num.append(v["-in4f-"])  # T登録番号<designated_number>
+    reg_num.append(1)  # T登録番号<existence>
+    reg_num.append(now_dt)  # T登録番号<update_date>
     # T車両履歴テーブルに挿入するデータを生成
     car_hist = []
-    car_hist.append(new_id3)        # T車両履歴<id>
-    car_hist.append(v["-in1-"])     # T車両履歴<company_use_number>
-    car_hist.append(v["-cd1-"])     # T車両履歴<department>
+    car_hist.append(new_id3)  # T車両履歴<id>
+    car_hist.append(v["-in1-"])  # T車両履歴<company_use_number>
+    car_hist.append(v["-cd1-"])  # T車両履歴<department>
     if signup:
-        car_hist.append(v["-cd4-"]) # T車両履歴<circumstances>（修正）
+        car_hist.append(v["-cd4-"])  # T車両履歴<circumstances>（修正）
     else:
-        car_hist.append("A")        # T車両履歴<circumstances>（新規）
-    car_hist.append(v["-in13-"])    # T車両履歴<implementation_date>
-    car_hist.append(1)              # T車両履歴<existence>
-    car_hist.append(now_dt)         # T車両履歴<update_date>
+        car_hist.append("A")  # T車両履歴<circumstances>（新規）
+    car_hist.append(v["-in13-"])  # T車両履歴<implementation_date>
+    car_hist.append(1)  # T車両履歴<existence>
+    car_hist.append(now_dt)  # T車両履歴<update_date>
     # テーブルにデータを挿入
     conn = sqlite3.connect(DATABASE)
     cur = conn.cursor()
-    sql1 = f"""
-        INSERT INTO T車両台帳 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-        """
-    sql2 = f"""
-        INSERT INTO T登録番号 VALUES(?, ?, ?, ?, ?, ?, ?, ?);
-        """
-    sql3 = f"""
-        INSERT INTO T車両履歴 VALUES(?, ?, ?, ?, ?, ?, ?);
-        """
+    sql1 = """INSERT INTO T車両台帳
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+    sql2 = "INSERT INTO T登録番号 VALUES(?, ?, ?, ?, ?, ?, ?, ?);"
+    sql3 = "INSERT INTO T車両履歴 VALUES(?, ?, ?, ?, ?, ?, ?);"
     cur.execute(sql1, car_info)
     cur.execute(sql2, reg_num)
     cur.execute(sql3, car_hist)
@@ -279,67 +284,145 @@ def reset_disabled():
     window["-transfer_abolition-"].update(disabled=True)
     window["-btn_prtadd-"].update(disabled=True)
 
-   
+
 # ウインドウレイアウト
-prt_frame_layout = [[sg.B("申請車両登録", k="-btn_prtadd-", size=(15, 0),
-                          font=("Yu Gothic UI", 8), disabled=True),
-                     sg.Push(), 
-                     sg.B("作成", k="-btn_print-", size=(15, 0),
-                          font=("Yu Gothic UI", 8), disabled=True)]]
-frame_layout = [[sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8)),
-                 sg.I(k="-in1f-", size=(10, 0), font=("Yu Gothic UI", 8))],
-                [sg.T("分類番号", size=(10, 0), font=("Yu Gothic UI", 8)),
-                 sg.I(k="-in2f-", size=(10, 0), font=("Yu Gothic UI", 8))],
-                [sg.T("ひらがな", size=(10, 0), font=("Yu Gothic UI", 8)),
-                 sg.I(k="-in3f-", size=(5, 0), font=("Yu Gothic UI", 8))],
-                [sg.T("指定番号", size=(10, 0), font=("Yu Gothic UI", 8)),
-                 sg.I(k="-in4f-", size=(10, 0), font=("Yu Gothic UI", 8))]]
-layout = [[sg.T("車両入力", font=("Yu Gothic UI", 11)),],
-        [sg.T("社番", size=(10, 0), font=("Yu Gothic UI", 8), text_color="#FF0000"),
-         sg.I(k="-in1-", size=(15, 0), font=("Yu Gothic UI", 8)),
-         sg.Checkbox("廃止登録済み", key="-chk_abolition-", enable_events=True)],
-        [sg.T("部署", size=(10, 0), font=("Yu Gothic UI", 8), text_color="#FF0000"),
-         sg.B("検索", k="-btn1-", font=("Yu Gothic UI", 8)),
-         sg.I(k="-in2-", font=("Yu Gothic UI", 8), size=(20, 0), readonly=True),
-         sg.I(k="-cd1-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False)],
-        [sg.T("内訳", size=(10, 0), font=("Yu Gothic UI", 8)),
-         sg.B("検索", k="-btn2-", font=("Yu Gothic UI", 8)),
-         sg.I(k="-in3-", font=("Yu Gothic UI", 8), size=(20, 0), readonly=True),
-         sg.I(k="-cd2-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False)],
-        [sg.T("車名", size=(10, 0), font=("Yu Gothic UI", 8)),
-        sg.I(k="-in4-", size=(20, 0), font=("Yu Gothic UI", 8))],
-        [sg.T("型式", size=(10, 0), font=("Yu Gothic UI", 8)),
-        sg.I(k="-in5-", size=(30, 0), font=("Yu Gothic UI", 8))],
-        [sg.T("車体番号", size=(10, 0), font=("Yu Gothic UI", 8), text_color="#FF0000"),
-        sg.I(k="-in6-", size=(30, 0), font=("Yu Gothic UI", 8))],
-        [sg.T("年式", size=(10, 0), font=("Yu Gothic UI", 8)),
-        sg.I(k="-in7-", size=(20, 0), font=("Yu Gothic UI", 8))],
-        [sg.T("車格", size=(10, 0), font=("Yu Gothic UI", 8)),
-         sg.B("検索", k="-btn3-", font=("Yu Gothic UI", 8)),
-         sg.I(k="-in8-", font=("Yu Gothic UI", 8), size=(20, 0), readonly=True),
-         sg.I(k="-cd3-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False)],
-        [sg.T("最大積載量", size=(10, 0), font=("Yu Gothic UI", 8)),
-         sg.I(k="-in9-", size=(10, 0), font=("Yu Gothic UI", 8))],
-        [sg.T("形状", size=(10, 0), font=("Yu Gothic UI", 8)),
-         sg.I(k="-in10-", size=(30, 0), font=("Yu Gothic UI", 8))],
-        [sg.T("乗車定員", size=(10, 0), font=("Yu Gothic UI", 8)),
-         sg.I(k="-in11-", size=(10, 0), font=("Yu Gothic UI", 8))],
-        [sg.T("燃料種類", size=(10, 0), font=("Yu Gothic UI", 8)),
-         sg.I(k="-in12-", size=(20, 0), font=("Yu Gothic UI", 8))],
-        [sg.T("実施日", size=(10, 0), font=("Yu Gothic UI", 8)),
-         sg.I(k="-in13-", size=(20, 0), font=("Yu Gothic UI", 8))],
-        [sg.Frame(title="登録番号", font=("Yu Gothic UI", 8), layout=frame_layout),
-         sg.I(k="-cd4-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False), sg.Push(),
-         sg.B("検索", k="-btn_search-", size=(6, 0), font=("Yu Gothic UI", 8))],
-        [sg.B("取消", k="-btn_cancel-", size=(6, 0), font=("Yu Gothic UI", 8)), sg.Push(), 
-         sg.Radio("修正", group_id="process1", font=("Yu Gothic UI", 8), key="-correction-",
-                  disabled=True, default=True),
-         sg.Radio("移動・廃止", group_id="process1", font=("Yu Gothic UI", 8), key="-transfer_abolition-",
-                  disabled=True),
-         sg.B("登録", k="-btn_register-", size=(6, 0), font=("Yu Gothic UI", 8))],
-        [sg.Frame(title="申請書作成", font=("Yu Gothic UI", 8), size=(290,50), layout=prt_frame_layout)]]
-window = sg.Window("車両入力", layout, font=("Yu Gothic UI", 8),
-                size=(310, 560), disable_close=False)
+prt_frame_layout = [
+    [
+        sg.B(
+            "申請車両登録",
+            k="-btn_prtadd-",
+            size=(15, 0),
+            font=("Yu Gothic UI", 8),
+            disabled=True,
+        ),
+        sg.Push(),
+        sg.B(
+            "作成", k="-btn_print-", size=(15, 0), font=("Yu Gothic UI", 8),
+            disabled=True
+        ),
+    ]
+]
+frame_layout = [
+    [
+        sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in1f-", size=(10, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("分類番号", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in2f-", size=(10, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("ひらがな", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in3f-", size=(5, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("指定番号", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in4f-", size=(10, 0), font=("Yu Gothic UI", 8)),
+    ],
+]
+layout = [
+    [sg.T("車両入力", font=("Yu Gothic UI", 11))],
+    [
+        sg.T("社番", size=(10, 0), font=("Yu Gothic UI", 8),
+             text_color="#FF0000"),
+        sg.I(k="-in1-", size=(15, 0), font=("Yu Gothic UI", 8)),
+        sg.Checkbox("廃止登録済み", key="-chk_abolition-", enable_events=True),
+    ],
+    [
+        sg.T("部署", size=(10, 0), font=("Yu Gothic UI", 8),
+             text_color="#FF0000"),
+        sg.B("検索", k="-btn1-", font=("Yu Gothic UI", 8)),
+        sg.I(k="-in2-", font=("Yu Gothic UI", 8), size=(20, 0), readonly=True),
+        sg.I(k="-cd1-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False),
+    ],
+    [
+        sg.T("内訳", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.B("検索", k="-btn2-", font=("Yu Gothic UI", 8)),
+        sg.I(k="-in3-", font=("Yu Gothic UI", 8), size=(20, 0), readonly=True),
+        sg.I(k="-cd2-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False),
+    ],
+    [
+        sg.T("車名", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in4-", size=(20, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("型式", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in5-", size=(30, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("車体番号", size=(10, 0), font=("Yu Gothic UI", 8),
+             text_color="#FF0000"),
+        sg.I(k="-in6-", size=(30, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("年式", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in7-", size=(20, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("車格", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.B("検索", k="-btn3-", font=("Yu Gothic UI", 8)),
+        sg.I(k="-in8-", font=("Yu Gothic UI", 8), size=(20, 0), readonly=True),
+        sg.I(k="-cd3-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False),
+    ],
+    [
+        sg.T("最大積載量", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in9-", size=(10, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("形状", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in10-", size=(30, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("乗車定員", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in11-", size=(10, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("燃料種類", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in12-", size=(20, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.T("実施日", size=(10, 0), font=("Yu Gothic UI", 8)),
+        sg.I(k="-in13-", size=(20, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.Frame(title="登録番号", font=("Yu Gothic UI", 8), layout=frame_layout),
+        sg.I(k="-cd4-", font=("Yu Gothic UI", 8), size=(4, 0), visible=False),
+        sg.Push(),
+        sg.B("検索", k="-btn_search-", size=(6, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.B("取消", k="-btn_cancel-", size=(6, 0), font=("Yu Gothic UI", 8)),
+        sg.Push(),
+        sg.Radio(
+            "修正",
+            group_id="process1",
+            font=("Yu Gothic UI", 8),
+            key="-correction-",
+            disabled=True,
+            default=True,
+        ),
+        sg.Radio(
+            "移動・廃止",
+            group_id="process1",
+            font=("Yu Gothic UI", 8),
+            key="-transfer_abolition-",
+            disabled=True,
+        ),
+        sg.B("登録", k="-btn_register-", size=(6, 0), font=("Yu Gothic UI", 8)),
+    ],
+    [
+        sg.Frame(
+            title="申請書作成",
+            font=("Yu Gothic UI", 8),
+            size=(290, 50),
+            layout=prt_frame_layout,
+        )
+    ],
+]
+window = sg.Window(
+    "車両入力", layout, font=("Yu Gothic UI", 8), size=(310, 560),
+    disable_close=False
+)
 window.finalize()
 
 # エンターキー押下
@@ -425,7 +508,7 @@ while True:
     if e == "-btn_register-":
         if not selection_mode:
             reality = check_number(v["-in1-"])
-            if reality == True:
+            if reality:
                 sg.popup("登録済みの車番です。", title="確認", font=("Yu Gothic UI", 8))
             else:
                 insert_data(selection_mode)
@@ -445,8 +528,9 @@ while True:
         company_use_number = v["-in1-"] if v["-in1-"] else "%"
         body_number = v["-in6-"] if v["-in6-"] else "%"
         department = v["-cd1-"] if v["-cd1-"] else "%"
-        sv = SelectVehicle(company_use_number, body_number, department,
-                           v["-chk_abolition-"])
+        sv = SelectVehicle(
+            company_use_number, body_number, department, v["-chk_abolition-"]
+        )
         vinfo = sv.open_sub_window()
         if vinfo:
             release_disabled(v["-chk_abolition-"])
