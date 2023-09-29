@@ -278,12 +278,14 @@ def reset_disabled():
     window["-correction-"].update(disabled=True)
     window["-transfer_abolition-"].update(disabled=True)
     window["-btn_prtadd-"].update(disabled=True)
-    
-    
+
+   
 # ウインドウレイアウト
-prt_frame_layout = [[sg.B("申請車両登録", k="-btn_prtadd-", size=(15, 0), font=("Yu Gothic UI", 8), disabled=True),
+prt_frame_layout = [[sg.B("申請車両登録", k="-btn_prtadd-", size=(15, 0),
+                          font=("Yu Gothic UI", 8), disabled=True),
                      sg.Push(), 
-                     sg.B("作成", k="-btn_print-", size=(15, 0), font=("Yu Gothic UI", 8), disabled=True)]]
+                     sg.B("作成", k="-btn_print-", size=(15, 0),
+                          font=("Yu Gothic UI", 8), disabled=True)]]
 frame_layout = [[sg.T("使用の本拠", size=(10, 0), font=("Yu Gothic UI", 8)),
                  sg.I(k="-in1f-", size=(10, 0), font=("Yu Gothic UI", 8))],
                 [sg.T("分類番号", size=(10, 0), font=("Yu Gothic UI", 8)),

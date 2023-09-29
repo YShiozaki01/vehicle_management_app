@@ -115,7 +115,6 @@ class PrtdataGen:
             sql += """ LEFT JOIN (SELECT * FROM T登録番号 WHERE existence = 1) as e
                 on a.company_use_number = e.company_use_number"""
         sql += f" WHERE a.company_use_number = '{self.company_use_number}';"
-        print(sql)
         conn = sqlite3.connect(DATABASE)
         cur = conn.cursor()
         cur.execute(sql)
