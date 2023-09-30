@@ -62,7 +62,7 @@ class SelectVehicle:
             and a.body_number like '%{self.body_number}%'
             and b.department like '%{self.department}%'
             """
-        if self.chk_abolition == False:
+        if not self.chk_abolition:
             sql = sql + " and b.existence = 1;"
         else:
             sql = sql + " and b.circumstances = 'D';"

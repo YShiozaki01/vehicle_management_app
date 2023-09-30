@@ -2,9 +2,10 @@ import PySimpleGUI as sg
 import sqlite3
 import datetime
 import pandas as pd
+import openpyxl
 from select_item import SelectItem, SelectVehicle
 from transfer_abolition import TrfAbol
-from application_form import PrtdataGen
+from application_form import PrtdataGen, PostingdataGen
 
 sg.theme("SystemDefault")
 DATABASE = "database/database.db"
@@ -12,6 +13,11 @@ SQL_DEPT = "SELECT code, name FROM M部署;"
 SQL_SITUATION = "SELECT code, name FROM M状況;"
 SQL_CARSIZE = "SELECT code, name FROM M車格;"
 SQL_CARTYPE = "SELECT code, name FROM M種別;"
+WB1 = "static/excel_template/運輸局申請様式.xlsm"
+WS1_1 = "表紙"
+WS2_1 = "別紙１"
+WS3_1 = "別紙２"
+WS4_1 = "別紙３"
 
 
 # SQLのSELECT文で辞書型でレコードを取得するDB接続
@@ -94,8 +100,9 @@ def get_reset_data(company_use_number, chk_abolition):
                 LEFT JOIN T登録番号 as f
                 on a.company_use_number = f.company_use_number
                 WHERE a.company_use_number = '{company_use_number}'
-                and d.existence = 1
-                and f.existence = 1;
+                and f.existence = 1
+                and d.id = (SELECT max(id) FROM T車両履歴
+                WHERE company_use_number = '{company_use_number}');
             """
     else:
         sql = f"""
@@ -562,14 +569,79 @@ while True:
     if e == "-btn_prtadd-":
         window["-btn_print-"].update(disabled=False)
         prt_conditions = [v["-in1-"], v["-in13-"], v["-cd1-"], v["-cd4-"]]
-        pg = PrtdataGen(prt_conditions)
+        prtg = PrtdataGen(prt_conditions)
         # 申請車両抽出条件リストを作成
-        pg.insert_pw()
+        prtg.insert_pw()
         # 申請車両情報をTW申請車両に書き出し
-        pg.application_vehicle()
+        prtg.application_vehicle()
         reset_disabled()
         clear_all()
     if e == "-btn_print-":
+        pstg = PostingdataGen()
+        print_list = pstg.get_print_list()
+        for dept_code, impl_date, dept_name in print_list:
+            # 部署別内訳別保有台数を取得してテーブルに書き出し
+            pstg.number_of_class(impl_date)
+            # 部署別車格別保有台数を取得してテーブルに書き出し
+            pstg.number_of_size(impl_date)
+            # 申請前後の台数差分を取得してテーブルに書き出し
+            pstg.get_difference()
+            # 申請事業所のリストを作成
+            wb = openpyxl.load_workbook(WB1)
+            ws1 = wb[WS1_1]
+            ws2 = wb[WS2_1]
+            ws3 = wb[WS3_1]
+            ws4 = wb[WS4_1]
+            sql = f"""
+                SELECT breakdown_dept FROM TW内訳別申請台数
+                WHERE application_dept = '{dept_code}'
+                GROUP by breakdown_dept;
+                """
+            conn = sqlite3.connect(DATABASE)
+            cur = conn.cursor()
+            cur.execute(sql)
+            dept_b_list = cur.fetchall()
+            r = 10
+            for dept_b in dept_b_list:
+                sql = f"""
+                    SELECT classification, number_of_units FROM TW内訳別保有台数
+                    WHERE department = '{dept_b[0]}';
+                    """
+                conn = sqlite3.connect(DATABASE)
+                cur = conn.cursor()
+                cur.execute(sql)
+                units = dict(cur.fetchall())
+                sql = f"""
+                    SELECT classification, adjustment FROM TW内訳別申請台数
+                    WHERE application_dept = '{dept_code}'
+                    AND breakdown_dept = '{dept_b[0]}';
+                    """
+                conn = sqlite3.connect(DATABASE)
+                cur = conn.cursor()
+                cur.execute(sql)
+                diff = dict(cur.fetchall())
+                sql = f"""
+                    SELECT official_use_name FROM M部署
+                    WHERE code = '{dept_b[0]}';
+                    """
+                conn = sqlite3.connect(DATABASE)
+                cur = conn.cursor()
+                cur.execute(sql)
+                name = cur.fetchone()[0]
+                ws2.cell(r, 1).value = name
+                c = 6
+                for class_code in ["C1", "C2", "C3", "C4"]:
+                    val_a = units[class_code] if class_code in units else 0
+                    val_b = (units[class_code] if class_code in units else 0) + (diff[class_code] if class_code in diff else 0)
+                    ws2.cell(r, c).value = val_a
+                    ws2.cell(r, c + 10).value = val_b
+                    c += 2
+                r += 2
+            pstg.clear_tw()
+            wb.save(f"{dept_name}.xlsx")
+        # 申請書の別紙1「種別（普通車）」表に転記用のデータを作成
+        # 申請書の別紙1「増減車両の明細」表に転記するデータを作成
+        # 申請書の別紙2「自動車倉庫の位置及び収容能力並びに必要面積」に転記するデータを作成
         window["-btn_print-"].update(disabled=True)
     if e == None:
         break

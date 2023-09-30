@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
 import sqlite3
+import openpyxl 
 
 sg.theme("SystemDefault")
 DATABASE = "database/database.db"
@@ -10,6 +11,7 @@ def get_db_connection():
     connection = sqlite3.connect(DATABASE)
     connection.row_factory = sqlite3.Row
     return connection
+
 
 class PrtdataGen:
     def __init__(self, prt_conditions):
@@ -24,47 +26,14 @@ class PrtdataGen:
         sql = f"""
             SELECT sum(existence) as number, department FROM T車両履歴
             GROUP by department
-            WHERE department = '{self.department};'
+            WHERE department = '{self.department}
+            AND implementation_date <= '{self.implementation_date}';'
             """
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(sql)
         result = cur.fetchall()
         return result
-
-    # 部署別内訳別保有台数
-    def number_of_class(self):
-        sql = """
-            INSERT INTO TW内訳別台数 (
-            SELECT department, classification, sum(existence) as number FROM
-            (SELECT a.company_use_number, a.classification, b.department, a.existence
-            FROM T車両台帳 as a
-            LEFT JOIN (SELECT * FROM T車両履歴 WHERE existence = 1) as b
-            on a.company_use_number = b.company_use_number)
-            GROUP by department, classification
-            );
-            """
-        conn = sqlite3.connect(DATABASE)
-        cur = conn.cursor()
-        cur.execute(sql)
-        conn.commit()
-    
-    # 部署別車格別保有台数
-    def number_of_size(self):
-        sql = """
-            INSERT INTO TW車格別台数 (
-            SELECT department, car_size, sum(existence) as number FROM
-            (SELECT a.company_use_number, a.car_size, b.department, a.existence
-            FROM T車両台帳 as a
-            LEFT JOIN (SELECT * FROM T車両履歴 WHERE existence = 1) as b
-            on a.company_use_number = b.company_use_number)
-            GROUP by department, car_size
-            );
-            """
-        conn = sqlite3.connect(DATABASE)
-        cur = conn.cursor()
-        cur.execute(sql)
-        conn.commit()
 
     # 申請車両情報
     def application_vehicle(self):
@@ -89,27 +58,31 @@ class PrtdataGen:
             a.model_year,
             a.load_capacity,
             a.body_number,
-            e.basis_of_use || class_number || hiragana || designated_number as reg_no,
+            e.basis_of_use || class_number || hiragana || designated_number
+            as reg_no,
             a.specification,
             '{dept_org_code}',
             '{dept_org_name}',
             a.riding_capacity,
             a.existence,
-            '{incr_decr}'
+            '{incr_decr}',
+            b.implementation_date
             FROM T車両台帳 as a"""
         if self.circumstances == "D":
             sql += f""" LEFT JOIN (SELECT * FROM T車両履歴
                     WHERE id = (SELECT max(id) FROM T車両履歴
-                    WHERE company_use_number = '{self.company_use_number}')) as b"""
+                    WHERE company_use_number = '{self.company_use_number}'))
+                    as b"""
         else:
-            sql += " LEFT JOIN (SELECT * FROM T車両履歴 WHERE existence =1) as b"
+            sql += " LEFT JOIN (SELECT * FROM T車両履歴 WHERE existence = 1) as b"
         sql += """ on a.company_use_number = b.company_use_number
                 LEFT JOIN M部署 as c on b.department = c.code
                 LEFT JOIN M種別 as d on a.classification = d.code"""
         if self.circumstances == "D":
             sql += f""" LEFT JOIN (SELECT * FROM T登録番号 
                     WHERE id = (SELECT max(id) FROM T登録番号
-                    WHERE company_use_number = '{self.company_use_number}')) as e
+                    WHERE company_use_number = '{self.company_use_number}'))
+                    as e
                     on a.company_use_number = e.company_use_number"""
         else:
             sql += """ LEFT JOIN (SELECT * FROM T登録番号 WHERE existence = 1) as e
@@ -119,7 +92,7 @@ class PrtdataGen:
         cur = conn.cursor()
         cur.execute(sql)
         conn.commit()
-    
+
     # 増減区分を取得
     def get_incr_decr(self):
         if self.circumstances in ("A", "T"):
@@ -131,14 +104,17 @@ class PrtdataGen:
     # 直近の移動元履歴を取得
     def get_dept_org(self):
         sql = f"""
-            SELECT a.id, a.company_use_number, a.department, b.official_use_name as dept_name,
-            a.circumstances
+            SELECT a.id, a.company_use_number, a.department,
+            b.official_use_name as dept_name, a.circumstances
             FROM T車両履歴 as a
             LEFT JOIN M部署 as b on a.department = b.code
             WHERE a.id =
-            (SELECT max(id) FROM T車両履歴 WHERE company_use_number = '{self.company_use_number}'
+            (SELECT max(id) FROM T車両履歴
+            WHERE implementation_date <= '{self.implementation_date}'
+            AND company_use_number = '{self.company_use_number}'
             AND circumstances = 'F');
             """
+        print(sql)
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(sql)
@@ -155,14 +131,110 @@ class PrtdataGen:
         cur.execute(sql, self.prt_conditions)
         conn.commit()
 
+
+class PostingdataGen:
+    def __init__(self):
+        pass
+
     # 申請営業所のリストを取得
-    def get_application_dept(self):
-        sql = "SELECT department FROM TW申請車両 GROUP by department;"
+    def get_print_list(self):
+        sql = """SELECT department, implementation_date
+            , min(official_use_name) as oun
+            FROM TW申請車両
+            GROUP by department, implementation_date;
+            """
         conn = sqlite3.connect(DATABASE)
         cur = conn.cursor()
         cur.execute(sql)
         result = cur.fetchall()
         dept_list = []
         for dept in result:
-            dept_list.append(dept[0])
+            dept_list.append(dept)
         return dept_list
+
+    # 部署別内訳別保有台数
+    def number_of_class(self, implementation_date):
+        sql = f"""
+            INSERT INTO TW内訳別保有台数
+            SELECT department, classification, sum(existence) as number FROM
+            (SELECT a.company_use_number, b.classification, a.department,
+            a.existence
+            FROM (SELECT * FROM T車両履歴
+            WHERE implementation_date <= '{implementation_date}') as a
+            LEFT JOIN T車両台帳 as b
+            on a.company_use_number = b.company_use_number)
+            GROUP by department, classification;
+            """
+        print(sql)
+        conn = sqlite3.connect(DATABASE)
+        cur = conn.cursor()
+        cur.execute(sql)
+        conn.commit()
+
+    # 部署別車格別保有台数
+    def number_of_size(self, implementation_date):
+        sql = f"""
+            INSERT INTO TW車格別保有台数
+            SELECT department, car_size, sum(existence) as number FROM
+            (SELECT a.company_use_number, b.car_size, a.department, a.existence
+            FROM (SELECT * FROM T車両履歴 WHERE existence = 1
+            AND implementation_date <= '{implementation_date}') as a
+            LEFT JOIN T車両台帳 as b
+            on a.company_use_number = b.company_use_number)
+            GROUP by department, car_size;
+            """
+        conn = sqlite3.connect(DATABASE)
+        cur = conn.cursor()
+        cur.execute(sql)
+        conn.commit()
+
+    # 申請前後の差分
+    def get_difference(self):
+        sql = """
+            INSERT INTO TW内訳別申請台数
+            SELECT dpt_a, dpt_b, classification, sum(adjustment) as adj FROM ( 
+            SELECT department as dpt_a, department as dpt_b, classification,
+            incr_decr,
+            CASE
+            WHEN incr_decr = 'I' THEN -1
+            WHEN incr_decr = 'D' THEN 1
+            end
+            as adjustment
+            FROM TW申請車両)
+            GROUP by dpt_a, dpt_b, classification;
+            INSERT INTO TW内訳別申請台数
+            SELECT dpt_a, dpt_b, classification, sum(adjustment) as adj FROM (
+            SELECT department as dpt_a, dept_org as dpt_b, classification,
+            incr_decr,
+            1 as adjustment
+            FROM TW申請車両
+            WHERE not dept_org = "")
+            GROUP by dpt_a, dpt_b, classification;
+            """
+        conn = sqlite3.connect(DATABASE)
+        cur = conn.cursor()
+        cur.executescript(sql)
+        conn.commit()
+
+    # TW内訳別保有台数とTW車格別保有台数をクリア
+    def clear_tw(self):
+        sql = """
+            DELETE FROM TW内訳別保有台数;
+            DELETE FROM TW車格別保有台数;
+            """
+        conn = sqlite3.connect(DATABASE)
+        cur = conn.cursor()
+        cur.executescript(sql)
+        conn.commit()
+
+# class MakeWorksheet:
+#     def __init__(self):
+#         self.wb1 = "static/excel_template/運輸局申請様式.xlsm"
+#         self.ws1_1 = "表紙"
+#         self.ws2_1 = "別紙１"
+#         self.ws3_1 = "別紙２"
+#         self.ws4_1 = "別紙３"
+
+#     def posting_ws2_1(self):
+#         wb = openpyxl.load_workbook(self.wb1)
+#         ws = wb[self.ws1_1]
