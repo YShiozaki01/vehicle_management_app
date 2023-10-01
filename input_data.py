@@ -135,6 +135,7 @@ def clear_all():
     window["-cd4-"].update("")
     # window["-chk_abolition-"].update(False)
     window["-correction-"].update(True)
+    window["-in1-"].update(disabled=False)
     window["-in1-"].set_focus(True)
 
 
@@ -210,6 +211,18 @@ def insert_data(signup):
     conn.commit()
 
 
+# T車両履歴テーブルにcircumstancesがA以外のレコードがあるか
+def check_circumstances(company_use_number):
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+    sql = f"""
+        SELECT * FROM T車両履歴 WHERE company_use_number = '{company_use_number}';
+        """
+    cur.execute(sql)
+    number = len(cur.fetchall())
+    return number
+
+
 # テーブルからレコードを削除
 def delete_data(company_use_number):
     sql = f"""
@@ -223,6 +236,53 @@ def delete_data(company_use_number):
     conn = sqlite3.connect(DATABASE)
     cur = conn.cursor()
     cur.executescript(sql)
+    conn.commit()
+
+# 登録番号以外の入力フィールドを使用不可（1）
+def set_disabled_1():
+    window["-btn1-"].update(disabled=True)
+    window["-btn2-"].update(disabled=True)
+    window["-in4-"].update(disabled=True)
+    window["-in5-"].update(disabled=True)
+    window["-in6-"].update(disabled=True)
+    window["-in7-"].update(disabled=True)
+    window["-btn3-"].update(disabled=True)
+    window["-in9-"].update(disabled=True)
+    window["-in10-"].update(disabled=True)
+    window["-in11-"].update(disabled=True)
+    window["-in12-"].update(disabled=True)
+    window["-in13-"].update(disabled=True)
+
+
+# （1）を解除
+def reset_disabled_1():
+    window["-btn1-"].update(disabled=False)
+    window["-btn2-"].update(disabled=False)
+    window["-in4-"].update(disabled=False)
+    window["-in5-"].update(disabled=False)
+    window["-in6-"].update(disabled=False)
+    window["-in7-"].update(disabled=False)
+    window["-btn3-"].update(disabled=False)
+    window["-in9-"].update(disabled=False)
+    window["-in10-"].update(disabled=False)
+    window["-in11-"].update(disabled=False)
+    window["-in12-"].update(disabled=False)
+    window["-in13-"].update(disabled=False)
+
+
+# T登録番号を更新
+def update_regnum(company_use_number, num1, num2, num3, num4):
+    conn = sqlite3.connect(DATABASE)
+    cur = conn.cursor()
+    sql = f"""
+        UPDATE T登録番号 SET
+            basis_of_use = '{num1}',
+            class_number = '{num2}',
+            hiragana = '{num3}',
+            designated_number = '{num4}'
+        WHERE company_use_number = '{company_use_number}';
+        """
+    cur.execute(sql)
     conn.commit()
 
 
@@ -239,7 +299,7 @@ def change_date(value):
 
 
 # フィールドの使用不可を解除
-def release_disabled():
+def release_disabled(pattern):
     window["-correction-"].update(disabled=False)
     window["-transfer_abolition-"].update(disabled=False)
     window["-btn_prtadd-"].update(disabled=False)
@@ -482,8 +542,12 @@ while True:
                 insert_data(selection_mode)
         if selection_mode:
             if v["-correction-"]:
-                delete_data(v["-in1-"])
-                insert_data(selection_mode)
+                if check_circumstances(v["-in1-"]) == 1:
+                    delete_data(v["-in1-"])
+                    insert_data(selection_mode)
+                else:
+                    update_regnum(v["-in1-"], v["-in1f-"], v["-in2f-"], v["-in3f-"], v["-in4f-"])
+                    reset_disabled_1()
             elif v["-transfer_abolition-"]:
                 ta = TrfAbol(v["-in1-"], v["-in2-"], v["-cd1-"])
                 ta.open_sub_window2()
@@ -500,8 +564,8 @@ while True:
         )
         vinfo = sv.open_sub_window()
         if vinfo:
-            # release_disabled(v["-chk_abolition-"])
-            release_disabled()
+            window["-in1-"].update(disabled=True)
+            release_disabled(check_circumstances(vinfo[0]))
             record = get_reset_data(vinfo[0])
             if record["circumstances"] == "D":
                 window["-txt_abolition-"].update(visible=True)
@@ -526,6 +590,8 @@ while True:
             window["-in2-"].update(record["dept_name"])
             window["-in13-"].update(record["implementation_date"])
             window["-cd4-"].update(record["circumstances"])
+            if check_circumstances(vinfo[0]) != 1:
+                set_disabled_1()
     if e == "-btn_cancel-":
         clear_all()
         reset_disabled()
