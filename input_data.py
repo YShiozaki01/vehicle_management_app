@@ -64,85 +64,44 @@ def get_recd(
 
 
 # 入力フォームに再セットするデータを生成
-def get_reset_data(company_use_number, chk_abolition):
+def get_reset_data(company_use_number):
     conn = get_db_connection()
     cur = conn.cursor()
-    if not chk_abolition:
-        sql = f"""
-                SELECT
-                    a.company_use_number,
-                    a.classification,
-                    b.name as class_name,
-                    a.maker,
-                    a.model_number,
-                    a.body_number,
-                    a.model_year,
-                    a.car_size,
-                    c.name as size_name,
-                    a.load_capacity,
-                    a.specification,
-                    a.riding_capacity,
-                    a.fuel_type,
-                    d.department,
-                    d.implementation_date,
-                    d.circumstances,
-                    e.name as dept_name,
-                    f.basis_of_use,
-                    f.class_number,
-                    f.hiragana,
-                    f.designated_number
-                FROM T車両台帳 as a
-                LEFT JOIN M種別 as b on a.classification = b.code
-                LEFT JOIN M車格 as c on a.car_size = c.code
-                LEFT JOIN T車両履歴 as d
-                on a.company_use_number = d.company_use_number
-                LEFT JOIN M部署 as e on d.department = e.code
-                LEFT JOIN T登録番号 as f
-                on a.company_use_number = f.company_use_number
-                WHERE a.company_use_number = '{company_use_number}'
-                and f.existence = 1
-                and d.id = (SELECT max(id) FROM T車両履歴
-                WHERE company_use_number = '{company_use_number}');
-            """
-    else:
-        sql = f"""
-                SELECT
-                    a.company_use_number,
-                    a.classification,
-                    b.name as class_name,
-                    a.maker,
-                    a.model_number,
-                    a.body_number,
-                    a.model_year,
-                    a.car_size,
-                    c.name as size_name,
-                    a.load_capacity,
-                    a.specification,
-                    a.riding_capacity,
-                    a.fuel_type,
-                    d.department,
-                    d.implementation_date,
-                    d.circumstances,
-                    e.name as dept_name,
-                    f.basis_of_use,
-                    f.class_number,
-                    f.hiragana,
-                    f.designated_number
-                FROM T車両台帳 as a
-                LEFT JOIN M種別 as b on a.classification = b.code
-                LEFT JOIN M車格 as c on a.car_size = c.code
-                LEFT JOIN T車両履歴 as d
-                on a.company_use_number = d.company_use_number
-                LEFT JOIN M部署 as e on d.department = e.code
-                LEFT JOIN (SELECT * FROM T登録番号 WHERE id =
-                    (
-                    SELECT max(id) FROM T登録番号
-                    WHERE company_use_number = '{company_use_number}')
-                    ) 
-                    as f on a.company_use_number = f.company_use_number
-                WHERE a.company_use_number = '{company_use_number}'
-                and d.circumstances = 'D';
-            """
+    sql = f"""
+            SELECT
+                a.company_use_number,
+                a.classification,
+                b.name as class_name,
+                a.maker,
+                a.model_number,
+                a.body_number,
+                a.model_year,
+                a.car_size,
+                c.name as size_name,
+                a.load_capacity,
+                a.specification,
+                a.riding_capacity,
+                a.fuel_type,
+                d.department,
+                d.implementation_date,
+                d.circumstances,
+                e.name as dept_name,
+                f.basis_of_use,
+                f.class_number,
+                f.hiragana,
+                f.designated_number
+            FROM T車両台帳 as a
+            LEFT JOIN M種別 as b on a.classification = b.code
+            LEFT JOIN M車格 as c on a.car_size = c.code
+            LEFT JOIN T車両履歴 as d
+            on a.company_use_number = d.company_use_number
+            LEFT JOIN M部署 as e on d.department = e.code
+            LEFT JOIN T登録番号 as f
+            on a.company_use_number = f.company_use_number
+            WHERE a.company_use_number = '{company_use_number}'
+            AND d.id = (SELECT max(id) FROM T車両履歴
+            WHERE company_use_number = '{company_use_number}');
+        """
     cur.execute(sql)
     result = cur.fetchone()
     return result
@@ -152,6 +111,7 @@ def get_reset_data(company_use_number, chk_abolition):
 def clear_all():
     window["-correction-"].update(disabled=True)
     window["-transfer_abolition-"].update(disabled=True)
+    window["-txt_abolition-"].update(visible=False)
     window["-in1-"].update("")
     window["-cd2-"].update("")
     window["-in3-"].update("")
@@ -173,7 +133,7 @@ def clear_all():
     window["-in2-"].update("")
     window["-in13-"].update("")
     window["-cd4-"].update("")
-    window["-chk_abolition-"].update(False)
+    # window["-chk_abolition-"].update(False)
     window["-correction-"].update(True)
     window["-in1-"].set_focus(True)
 
@@ -279,7 +239,7 @@ def change_date(value):
 
 
 # フィールドの使用不可を解除
-def release_disabled(check):
+def release_disabled():
     window["-correction-"].update(disabled=False)
     window["-transfer_abolition-"].update(disabled=False)
     window["-btn_prtadd-"].update(disabled=False)
@@ -333,7 +293,8 @@ layout = [
         sg.T("社番", size=(10, 0), font=("Yu Gothic UI", 8),
              text_color="#FF0000"),
         sg.I(k="-in1-", size=(15, 0), font=("Yu Gothic UI", 8)),
-        sg.Checkbox("廃止登録済み", key="-chk_abolition-", enable_events=True),
+        sg.T("廃止登録済み", k="-txt_abolition-", background_color="#FF0000",
+             text_color="#ffffff", visible=False),
     ],
     [
         sg.T("部署", size=(10, 0), font=("Yu Gothic UI", 8),
@@ -526,7 +487,6 @@ while True:
             elif v["-transfer_abolition-"]:
                 ta = TrfAbol(v["-in1-"], v["-in2-"], v["-cd1-"])
                 ta.open_sub_window2()
-                # print("「移動・廃止」工事中")
             selection_mode = False
             reset_disabled()
         clear_all()
@@ -536,12 +496,15 @@ while True:
         body_number = v["-in6-"] if v["-in6-"] else "%"
         department = v["-cd1-"] if v["-cd1-"] else "%"
         sv = SelectVehicle(
-            company_use_number, body_number, department, v["-chk_abolition-"]
+            company_use_number, body_number, department
         )
         vinfo = sv.open_sub_window()
         if vinfo:
-            release_disabled(v["-chk_abolition-"])
-            record = get_reset_data(vinfo[0], v["-chk_abolition-"])
+            # release_disabled(v["-chk_abolition-"])
+            release_disabled()
+            record = get_reset_data(vinfo[0])
+            if record["circumstances"] == "D":
+                window["-txt_abolition-"].update(visible=True)
             window["-in1-"].update(record["company_use_number"])
             window["-cd2-"].update(record["classification"])
             window["-in3-"].update(record["class_name"])
@@ -578,14 +541,14 @@ while True:
         clear_all()
     if e == "-btn_print-":
         pstg = PostingdataGen()
+        # 申請前後の台数差分を取得してテーブルに書き出し
+        pstg.get_difference()
         print_list = pstg.get_print_list()
         for dept_code, impl_date, dept_name in print_list:
             # 部署別内訳別保有台数を取得してテーブルに書き出し
             pstg.number_of_class(impl_date)
             # 部署別車格別保有台数を取得してテーブルに書き出し
             pstg.number_of_size(impl_date)
-            # 申請前後の台数差分を取得してテーブルに書き出し
-            pstg.get_difference()
             # 申請事業所のリストを作成
             wb = openpyxl.load_workbook(WB1)
             ws1 = wb[WS1_1]
@@ -593,9 +556,10 @@ while True:
             ws3 = wb[WS3_1]
             ws4 = wb[WS4_1]
             sql = f"""
-                SELECT breakdown_dept FROM TW内訳別申請台数
+                SELECT breakdown_dept, implementation_date FROM TW内訳別申請台数
                 WHERE application_dept = '{dept_code}'
-                GROUP by breakdown_dept;
+                AND implementation_date = '{impl_date}'
+                GROUP by breakdown_dept, implementation_date;
                 """
             conn = sqlite3.connect(DATABASE)
             cur = conn.cursor()
@@ -614,7 +578,8 @@ while True:
                 sql = f"""
                     SELECT classification, adjustment FROM TW内訳別申請台数
                     WHERE application_dept = '{dept_code}'
-                    AND breakdown_dept = '{dept_b[0]}';
+                    AND breakdown_dept = '{dept_b[0]}'
+                    AND implementation_date = '{dept_b[1]}';
                     """
                 conn = sqlite3.connect(DATABASE)
                 cur = conn.cursor()
@@ -638,7 +603,8 @@ while True:
                     c += 2
                 r += 2
             pstg.clear_tw()
-            wb.save(f"{dept_name}.xlsx")
+            strdate = dept_b[1].replace("/", "-")
+            wb.save(f"{dept_name}_{strdate}.xlsx")
         # 申請書の別紙1「種別（普通車）」表に転記用のデータを作成
         # 申請書の別紙1「増減車両の明細」表に転記するデータを作成
         # 申請書の別紙2「自動車倉庫の位置及び収容能力並びに必要面積」に転記するデータを作成

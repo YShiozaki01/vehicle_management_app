@@ -42,13 +42,13 @@ class SelectItem:
         win.close()
         return item
 
+
 class SelectVehicle:
     def __init__(self, company_use_number, body_number,
-                 department, chk_abolition):
+                 department):
         self.company_use_number = company_use_number
         self.body_number = body_number
         self.department = department
-        self.chk_abolition = chk_abolition
 
     def get_record_1(self):
         conn = get_db_connection()
@@ -59,13 +59,11 @@ class SelectVehicle:
             on a.company_use_number = b.company_use_number
             LEFT JOIN M部署 as c on b.department = c.code
             WHERE a.company_use_number like '%{self.company_use_number}%'
-            and a.body_number like '%{self.body_number}%'
-            and b.department like '%{self.department}%'
+            AND a.body_number like '%{self.body_number}%'
+            AND b.department like '%{self.department}%'
+            AND b.id = (SELECT max(id) FROM T車両履歴
+            WHERE company_use_number like '%{self.company_use_number}%');
             """
-        if not self.chk_abolition:
-            sql = sql + " and b.existence = 1;"
-        else:
-            sql = sql + " and b.circumstances = 'D';"
         cur.execute(sql)
         result = cur.fetchall()
         items = []

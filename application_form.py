@@ -67,27 +67,20 @@ class PrtdataGen:
             a.existence,
             '{incr_decr}',
             b.implementation_date
-            FROM T車両台帳 as a"""
-        if self.circumstances == "D":
-            sql += f""" LEFT JOIN (SELECT * FROM T車両履歴
-                    WHERE id = (SELECT max(id) FROM T車両履歴
-                    WHERE company_use_number = '{self.company_use_number}'))
-                    as b"""
-        else:
-            sql += " LEFT JOIN (SELECT * FROM T車両履歴 WHERE existence = 1) as b"
-        sql += """ on a.company_use_number = b.company_use_number
-                LEFT JOIN M部署 as c on b.department = c.code
-                LEFT JOIN M種別 as d on a.classification = d.code"""
-        if self.circumstances == "D":
-            sql += f""" LEFT JOIN (SELECT * FROM T登録番号 
-                    WHERE id = (SELECT max(id) FROM T登録番号
-                    WHERE company_use_number = '{self.company_use_number}'))
-                    as e
-                    on a.company_use_number = e.company_use_number"""
-        else:
-            sql += """ LEFT JOIN (SELECT * FROM T登録番号 WHERE existence = 1) as e
-                on a.company_use_number = e.company_use_number"""
-        sql += f" WHERE a.company_use_number = '{self.company_use_number}';"
+            FROM T車両台帳 as a
+            LEFT JOIN T車両履歴 as b
+            on a.company_use_number = b.company_use_number
+            LEFT JOIN M部署 as c on b.department = c.code
+            LEFT JOIN M種別 as d on a.classification = d.code
+            LEFT JOIN T登録番号 as e
+            on a.company_use_number = e.company_use_number
+            WHERE a.company_use_number = '{self.company_use_number}'
+            AND b.implementation_date = '{self.implementation_date}'
+            AND b.id = (SELECT max(id) FROM T車両履歴
+            WHERE company_use_number = '{self.company_use_number}'
+            AND implementation_date = '{self.implementation_date}')
+            AND e.id = (SELECT max(id) FROM T登録番号
+            WHERE company_use_number = '{self.company_use_number}');"""
         conn = sqlite3.connect(DATABASE)
         cur = conn.cursor()
         cur.execute(sql)
@@ -114,7 +107,6 @@ class PrtdataGen:
             AND company_use_number = '{self.company_use_number}'
             AND circumstances = 'F');
             """
-        print(sql)
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(sql)
@@ -165,7 +157,6 @@ class PostingdataGen:
             on a.company_use_number = b.company_use_number)
             GROUP by department, classification;
             """
-        print(sql)
         conn = sqlite3.connect(DATABASE)
         cur = conn.cursor()
         cur.execute(sql)
@@ -192,25 +183,30 @@ class PostingdataGen:
     def get_difference(self):
         sql = """
             INSERT INTO TW内訳別申請台数
-            SELECT dpt_a, dpt_b, classification, sum(adjustment) as adj FROM ( 
+            SELECT dpt_a, dpt_b, classification, sum(adjustment),
+            implementation_date as adj FROM ( 
             SELECT department as dpt_a, department as dpt_b, classification,
             incr_decr,
             CASE
             WHEN incr_decr = 'I' THEN -1
             WHEN incr_decr = 'D' THEN 1
             end
-            as adjustment
+            as adjustment,
+            implementation_date
             FROM TW申請車両)
-            GROUP by dpt_a, dpt_b, classification;
+            GROUP by dpt_a, dpt_b, classification, implementation_date;
             INSERT INTO TW内訳別申請台数
-            SELECT dpt_a, dpt_b, classification, sum(adjustment) as adj FROM (
+            SELECT dpt_a, dpt_b, classification, sum(adjustment),
+            implementation_date as adj FROM (
             SELECT department as dpt_a, dept_org as dpt_b, classification,
             incr_decr,
-            1 as adjustment
+            1 as adjustment,
+            implementation_date
             FROM TW申請車両
             WHERE not dept_org = "")
-            GROUP by dpt_a, dpt_b, classification;
+            GROUP by dpt_a, dpt_b, classification, implementation_date;
             """
+        print(sql)
         conn = sqlite3.connect(DATABASE)
         cur = conn.cursor()
         cur.executescript(sql)
