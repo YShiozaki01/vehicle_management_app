@@ -282,3 +282,28 @@ class PostingdataGen:
             ws.cell(r, 20).value = row["specification"]
             ws.cell(r, 23).value = row["dept_org_name"]
             r += 2
+
+    # 別紙2「自動車倉庫の位置及び収容能力並びに必要面積」に転記するデータを生成
+    def gen_posting_data3(sqlf, ws, department, implementation_date):
+        sql = f"""
+            SELECT b.car_size, sum(a.existence) as number
+            FROM T車両履歴 as a
+            LEFT JOIN T車両台帳 as b
+            on a.company_use_number = b.company_use_number
+            WHERE a.implementation_date <= '{implementation_date}'
+            AND a.department = '{department}'
+            GROUP by b.car_size;
+            """
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        for row in result:
+            if row["car_size"] == "1":
+                ws["P5"] = row["number"]
+            elif row["car_size"] == "2":
+                ws["P7"] = row["number"]
+            elif row["car_size"] == "3":
+                ws["P9"] = row["number"]
+            elif row["car_size"] == "4":
+                ws["P11"] = row["number"]
