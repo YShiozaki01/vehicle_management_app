@@ -128,6 +128,28 @@ class PostingdataGen:
     def __init__(self):
         pass
 
+    # 申請車両の社番と申請区分のリスト
+    def get_appl_info(self):
+        sql = """
+            SELECT company_use_number,
+            CASE
+            WHEN prt_number = 'A' THEN '増車'
+            WHEN prt_number = 'D' THEN '減車'
+            WHEN prt_number = 'T' THEN '営配'
+            end
+            as division
+            FROM TPrintWork;
+            """
+        conn = sqlite3.connect(DATABASE)
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        list = ""
+        for num, div in result:
+            row = f"{num}　{div}" + "\n"
+            list += row
+        return list
+
     # 申請営業所のリストを取得
     def get_print_list(self):
         sql = """SELECT department, implementation_date
@@ -206,7 +228,6 @@ class PostingdataGen:
             WHERE not dept_org = "")
             GROUP by dpt_a, dpt_b, classification, implementation_date;
             """
-        print(sql)
         conn = sqlite3.connect(DATABASE)
         cur = conn.cursor()
         cur.executescript(sql)
@@ -223,14 +244,41 @@ class PostingdataGen:
         cur.executescript(sql)
         conn.commit()
 
-# class MakeWorksheet:
-#     def __init__(self):
-#         self.wb1 = "static/excel_template/運輸局申請様式.xlsm"
-#         self.ws1_1 = "表紙"
-#         self.ws2_1 = "別紙１"
-#         self.ws3_1 = "別紙２"
-#         self.ws4_1 = "別紙３"
-
-#     def posting_ws2_1(self):
-#         wb = openpyxl.load_workbook(self.wb1)
-#         ws = wb[self.ws1_1]
+    # 別紙1「増減車両の明細」に転記するデータを生成
+    def gen_posting_data2(sqlf, ws, department, implementation_date):
+        sql = f"""
+            SELECT
+                CASE
+                    WHEN incr_decr = "I" THEN "増車"
+                    WHEN incr_decr = "D" THEN "減車"
+                END as division,
+                official_use_name,
+                class_name,
+                maker,
+                model_year,
+                load_capacity,
+                body_number,
+                reg_no,
+                specification,
+                dept_org_name
+            FROM TW申請車両
+            WHERE department = '{department}'
+            AND implementation_date = '{implementation_date}';
+            """
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = list(cur.fetchall())
+        r = 25
+        for row in result:
+            ws.cell(r, 1).value = row["division"]
+            ws.cell(r, 3).value = row["official_use_name"]
+            ws.cell(r, 6).value = row["class_name"]
+            ws.cell(r, 8).value = row["maker"]
+            ws.cell(r, 11).value = row["model_year"]
+            ws.cell(r, 13).value = row["load_capacity"]
+            ws.cell(r, 16).value = row["body_number"]
+            ws.cell(r + 1, 16).value = row["reg_no"]
+            ws.cell(r, 20).value = row["specification"]
+            ws.cell(r, 23).value = row["dept_org_name"]
+            r += 2
