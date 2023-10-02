@@ -686,11 +686,17 @@ while True:
                         ws2.cell(r, c).value = val_a
                         ws2.cell(r, c + 10).value = val_b
                         c += 2
+                    # 運行車
+                    pstg.get_service_vehicle(ws2, dept_b[0], r)
                     r += 2
-                # 申請書の別紙1「増減車両の明細」表に転記するデータを作成して転記
-                posting_data = pstg.gen_posting_data2(ws2, dept_code, impl_date)
-                # 申請書の別紙2「自動車倉庫の位置及び収容能力並びに必要面積」に転記するデータを作成
-                posting_data = pstg.gen_posting_data3(ws3, dept_code, impl_date)
+                # 申請書の別紙1「増減車両の明細」表にデータを転記
+                pstg.gen_posting_data2(ws2, dept_code, impl_date)
+                # 申請書の別紙2「自動車倉庫の位置及び収容能力並びに必要面積」にデータを転記
+                pstg.gen_posting_data3(ws3, dept_code, impl_date)
+                # 申請書の別紙2「自動車倉庫の位置及び収容能力並びに必要面積」に駐車場情報を転記
+                pstg.get_garage(ws3, dept_code)
+                # 別紙3「運行管理者、整備管理者の選任状況」に転記するデータを生成
+                pstg.get_practitioners(ws4, dept_code)
                 # 作成した申請書Excelファイルを保存
                 strdate = dept_b[1].replace("/", "-")
                 wb.save(f"{dept_name}_{strdate}.xlsx")

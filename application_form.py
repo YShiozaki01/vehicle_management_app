@@ -245,7 +245,7 @@ class PostingdataGen:
         conn.commit()
 
     # 別紙1「増減車両の明細」に転記するデータを生成
-    def gen_posting_data2(sqlf, ws, department, implementation_date):
+    def gen_posting_data2(self, ws, department, implementation_date):
         sql = f"""
             SELECT
                 CASE
@@ -275,7 +275,8 @@ class PostingdataGen:
             ws.cell(r, 3).value = row["official_use_name"]
             ws.cell(r, 6).value = row["class_name"]
             ws.cell(r, 8).value = row["maker"]
-            ws.cell(r, 11).value = row["model_year"]
+            i = row["model_year"].find("年")
+            ws.cell(r, 11).value = row["model_year"][:i + 1]
             ws.cell(r, 13).value = row["load_capacity"]
             ws.cell(r, 16).value = row["body_number"]
             ws.cell(r + 1, 16).value = row["reg_no"]
@@ -284,7 +285,7 @@ class PostingdataGen:
             r += 2
 
     # 別紙2「自動車倉庫の位置及び収容能力並びに必要面積」に転記するデータを生成
-    def gen_posting_data3(sqlf, ws, department, implementation_date):
+    def gen_posting_data3(self, ws, department, implementation_date):
         sql = f"""
             SELECT b.car_size, sum(a.existence) as number
             FROM T車両履歴 as a
@@ -307,3 +308,77 @@ class PostingdataGen:
                 ws["P9"] = row["number"]
             elif row["car_size"] == "4":
                 ws["P11"] = row["number"]
+
+    # 別紙2「自動車倉庫の位置及び収容能力並びに必要面積」に転記する駐車場情報を抽出
+    def get_garage(self, ws, department):
+        sql = f"""
+            SELECT b.official_use_name, a.address, a.capacity FROM M駐車場 as a
+            LEFT JOIN M部署 as b on a.code = b.code
+            WHERE a.code = '{department}' ORDER by a.row_number;
+            """
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        r = 5
+        for row in result:
+            ws[f"A{r}"] = row["official_use_name"]
+            ws[f"F{r}"] = row["address"]
+            ws[f"M{r}"] = row["capacity"]
+            r += 2
+
+    # 別紙1「種別（普通車）」に転記する運行車データを生成
+    def get_service_vehicle(self, ws, department, r):
+        conn = get_db_connection()
+        cur = conn.cursor()
+        sql = f"SELECT * FROM M運行車 WHERE code = '{department}';"
+        cur.execute(sql)
+        result = cur.fetchall()
+        ws[f"F{r + 1}"] = 0
+        ws[f"H{r + 1}"] = 0
+        ws[f"J{r + 1}"] = 0
+        ws[f"L{r + 1}"] = 0
+        ws[f"P{r + 1}"] = 0
+        ws[f"R{r + 1}"] = 0
+        ws[f"T{r + 1}"] = 0
+        ws[f"V{r + 1}"] = 0
+        position_new = {"C1": "F", "C2": "H", "C3": "J", "C4": "L"}
+        position_old = {"C1": "P", "C2": "R", "C3": "T", "C4": "V"}
+        for row in result:
+            ws[f"{position_new[row['classification']]}{r + 1}"] = row["nov"]
+            ws[f"{position_old[row['classification']]}{r + 1}"] = row["nov"]
+
+    # 別紙3「運行管理者、整備管理者の選任状況」に転記するデータを生成
+    def get_practitioners(self, ws, department):
+        conn = get_db_connection()
+        cur = conn.cursor()
+        sql1 = f"""
+            SELECT b.official_use_name, a.name, a.date_of_acquisition
+            FROM M実務者 as a
+            LEFT JOIN M部署 as b on a.code = b.code
+            WHERE a.code = '{department}'
+            AND division = 'F' ORDER by row_number;
+            """
+        sql2 = f"""
+            SELECT b.official_use_name, a.name, a.date_of_acquisition
+            FROM M実務者 as a
+            LEFT JOIN M部署 as b on a.code = b.code
+            WHERE a.code = '{department}'
+            AND division = 'M' ORDER by row_number;
+            """
+        cur.execute(sql1)
+        result = cur.fetchall()
+        r = 5
+        for row in result:
+            ws[f"A{r}"] = row["official_use_name"]
+            ws[f"F{r}"] = row["name"]
+            ws[f"K{r}"] = row["date_of_acquisition"]
+            r += 2
+        cur.execute(sql2)
+        result = cur.fetchall()
+        r = 5
+        for row in result:
+            ws[f"A{r}"] = row["official_use_name"]
+            ws[f"P{r}"] = row["name"]
+            ws[f"U{r}"] = row["date_of_acquisition"]
+            r += 2
