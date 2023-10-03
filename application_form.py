@@ -382,3 +382,69 @@ class PostingdataGen:
             ws[f"P{r}"] = row["name"]
             ws[f"U{r}"] = row["date_of_acquisition"]
             r += 2
+
+    # 表紙に記載する文章を生成する
+    def gen_sentence(self, ws, department):
+        sql = f"""
+            SELECT department, min(official_use_name) as dept, circumstances, count(circumstances) as cnt
+            FROM TW申請車両 WHERE department = '{department}' GROUP by department, circumstances;
+            """
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        cnt_list = {}
+        for row in result:
+            if row["circumstances"] == "A":
+                cnt_list[row["circumstances"]] = row["cnt"]
+            elif row["circumstances"] == "D":
+                cnt_list[row["circumstances"]] = row["cnt"]
+            elif row["circumstances"] == "T":
+                cnt_list[row["circumstances"]] = row["cnt"]
+        sent1 = f"{row['dept']}にて"
+        sent2 = ""
+        sent3 = ""
+        sent4 = ""
+        pat = ""
+        if "A" in cnt_list:
+            sent2 = f"{cnt_list['A']}車両増車"
+            pat += "A"
+        if "D" in cnt_list:
+            sent3 = f"{cnt_list['D']}車両減車"
+            pat += "D"
+        if "T" in cnt_list:
+            sent4 = f"{cnt_list['T']}車両営配"
+            pat += "T"
+        if pat == "A":
+            sentence1 = f"{sent1}車両不足のため、{sent2}いたします。"
+            sentence2 = ""
+        elif pat == "D":
+            sentence1 = f"{sent1}車両老朽化のため、{sent3}いたします。"
+            sentence2 = ""
+        elif pat == "T":
+            sentence1 = f"{sent1}車両不足のため、{sent4}いたします。"
+            sentence2 = ""
+        elif pat == "AD":
+            sentence1 = f"{sent1}車両不足のため、{sent2}いたします。"
+            sentence2 = f"また、車両老朽化のため、{sent3}いたします。"
+        elif pat == "AT":
+            sentence1 = f"{sent1}車両不足のため、{sent2}、"
+            sentence2 = f"{sent4}いたします。"
+        elif pat == "DT":
+            sentence1 = f"{sent1}車両老朽化のため、{sent3}いたします。"
+            sentence2 = f"これにより車両不足のため、{sent4}いたします。"
+        elif pat == "ADT":
+            sentence1 = f"{sent1}車両不足のため、{sent2}いたします。"
+            sentence2 = f"また、老朽化の{sent3}、{sent4}いたします。"
+        ws["G34"] = sentence1
+        ws["G35"] = sentence2
+
+    # 管轄運輸局を取得して転記
+    def get_agency(self, ws, department):
+        sql = f"SELECT administrative_agency, address FROM M運輸局 WHERE code = '{department}';"
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchone()
+        ws["B4"] = result["administrative_agency"]
+        ws["B5"] = result["address"]

@@ -697,6 +697,10 @@ while True:
                 pstg.get_garage(ws3, dept_code)
                 # 別紙3「運行管理者、整備管理者の選任状況」に転記するデータを生成
                 pstg.get_practitioners(ws4, dept_code)
+                # 表紙に記載する文書を生成する
+                pstg.gen_sentence(ws1, dept_code)
+                # 所管の運輸局名を取得して転記
+                pstg.get_agency(ws1, dept_code)
                 # 作成した申請書Excelファイルを保存
                 strdate = dept_b[1].replace("/", "-")
                 wb.save(f"{dept_name}_{strdate}.xlsx")
