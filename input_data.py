@@ -713,6 +713,9 @@ while True:
                     pstg.posting_oath(ws_oath, dept_code, impl_date)
                     strdate = dept_b[1].replace("/", "-")
                     wb_oath.save(f"宣誓書_{dept_name}_{strdate}.xlsx")
+            # 「事業用自動車等連絡書」用のデータを生成して転記
+            pstg.posting_contactform()
+            # TW系のテーブルをクリア
             pstg.clear_tw()
             window["-btn_print-"].update(disabled=True)
             sg.popup("Excel「申請書」を作成しました。", title="作成完了", font=("Yu Gothic UI", 8))

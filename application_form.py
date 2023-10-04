@@ -1,10 +1,13 @@
 import PySimpleGUI as sg
 import sqlite3
+import openpyxl
 import datetime
 from dateutil.relativedelta import relativedelta
 
 sg.theme("SystemDefault")
 DATABASE = "database/database.db"
+WORKBOOK = "static/excel_template/事業用自動車等連絡書.xlsm"
+WORKSHEET = "連絡書様式"
 
 
 # データベースに接続
@@ -513,3 +516,42 @@ class PostingdataGen:
         else:
             j = False
         return j
+
+    # 「事業用自動車等連絡書」用のデータを生成して転記
+    def posting_contactform(self):
+        sql = """
+            SELECT a.company_use_number, a.incr_decr, a.circumstances, b.official_use_name,
+            b.address, a.reg_no, c.model_number, a.body_number, a.model_year, a.riding_capacity,
+            a.load_capacity
+            FROM TW申請車両 as a
+            LEFT JOIN M部署 as b on a.department = b.code
+            LEFT JOIN T車両台帳 as c on a.company_use_number = c.company_use_number;
+            """
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        wb = openpyxl.load_workbook(WORKBOOK)
+        for row in result:
+            ws_org = wb[WORKSHEET]
+            ws = wb.copy_worksheet(ws_org)
+            ws["AK8"] = row["official_use_name"]
+            ws["AK10"] = row["address"]
+            if row["incr_decr"] == "I":
+                ws["L14"] = row["reg_no"]
+                ws["L15"] = f"（{row['body_number']}）"
+                ws["L17"] = row["model_number"]
+                ws["L19"] = row["body_number"]
+                i = row["model_year"].find("年")
+                ws["W20"] = row["model_year"][:i]
+                ws["W21"] = row["riding_capacity"]
+                ws["W24"] = row["load_capacity"]
+            elif row["incr_decr"] == "D":
+                ws["AG15"] = row["reg_no"]
+                ws["AG16"] = f"（{row['body_number']}）"
+                i = row["model_year"].find("年")
+                ws["AR20"] = row["model_year"][:i]
+                ws["AR21"] = row["riding_capacity"]
+                ws["AR24"] = row["load_capacity"]
+            ws.title = row["company_use_number"]
+        wb.save(f"連絡書.xlsx")
