@@ -14,10 +14,12 @@ SQL_SITUATION = "SELECT code, name FROM M状況;"
 SQL_CARSIZE = "SELECT code, name FROM M車格;"
 SQL_CARTYPE = "SELECT code, name FROM M種別;"
 WB1 = "static/excel_template/運輸局申請様式.xlsm"
+WB2 = "static/excel_template/増車宣誓書.xlsm"
 WS1_1 = "表紙"
 WS2_1 = "別紙１"
 WS3_1 = "別紙２"
 WS4_1 = "別紙３"
+WS1_2 = "様式例２"
 
 
 # SQLのSELECT文で辞書型でレコードを取得するDB接続
@@ -703,7 +705,14 @@ while True:
                 pstg.get_agency(ws1, dept_code)
                 # 作成した申請書Excelファイルを保存
                 strdate = dept_b[1].replace("/", "-")
-                wb.save(f"{dept_name}_{strdate}.xlsx")
+                wb.save(f"申請書_{dept_name}_{strdate}.xlsx")
+                # 申請内容に増車、営配が含まれていたら、増車宣誓書を作成
+                if pstg.check_include_t(dept_code, impl_date):
+                    wb_oath = openpyxl.load_workbook(WB2)
+                    ws_oath = wb_oath[WS1_2]
+                    pstg.posting_oath(ws_oath, dept_code, impl_date)
+                    strdate = dept_b[1].replace("/", "-")
+                    wb_oath.save(f"宣誓書_{dept_name}_{strdate}.xlsx")
             pstg.clear_tw()
             window["-btn_print-"].update(disabled=True)
             sg.popup("Excel「申請書」を作成しました。", title="作成完了", font=("Yu Gothic UI", 8))

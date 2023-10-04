@@ -1,6 +1,7 @@
 import PySimpleGUI as sg
 import sqlite3
-import openpyxl 
+import datetime
+from dateutil.relativedelta import relativedelta
 
 sg.theme("SystemDefault")
 DATABASE = "database/database.db"
@@ -448,3 +449,67 @@ class PostingdataGen:
         result = cur.fetchone()
         ws["B4"] = result["administrative_agency"]
         ws["B5"] = result["address"]
+
+    # 増車宣誓書に各値を転記
+    def posting_oath(self, ws, department, implementation_date):
+        # 提出先
+        sql = f"SELECT administrative_agency, address FROM M運輸局 WHERE code = '{department}';"
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchone()
+        ws["B2"] = f"{result['address']}殿"
+        # 実施後と実施日の３ヶ月前時点の車両保有数
+        # 1)実施後の保有数
+        sql = f"""
+            SELECT b.official_use_name, a.department, sum(a.existence) as cnt
+            FROM T車両履歴 as a
+            LEFT JOIN M部署 as b on a.department = b.code
+            WHERE a.department = '{department}'
+            AND a.implementation_date <= '{implementation_date}'
+            GROUP by a.department;
+            """
+        cur.execute(sql)
+        result = cur.fetchone()
+        dept_name = result["official_use_name"]
+        cnt_after = result["cnt"]
+        # 2)実施日の３ヶ月前の日付
+        str_date = implementation_date
+        target_date = datetime.datetime.strptime(str_date, '%Y/%m/%d')
+        result_date = target_date + relativedelta(months=-3)
+        three_month_ago = str(format(result_date, '%Y/%m/%d'))
+        sql = f"""
+            SELECT department, sum(existence) as cnt FROM T車両履歴
+            WHERE department = '{department}'
+            AND implementation_date <= '{three_month_ago}'
+            GROUP by department;
+            """
+        cur.execute(sql)
+        result = cur.fetchone()
+        cnt_before = result["cnt"]
+        # 3)転記
+        i = dept_name.find("営")
+        ws["B30"] = dept_name[:i]
+        ws["E30"] = cnt_after
+        ws["M30"] = cnt_before
+
+    # 申請に営配が含まれているか
+    def check_include_t(self, department, implementation_date):
+        sql = f"""
+            SELECT circumstances FROM TW申請車両
+            WHERE department = '{department}'
+            AND implementation_date = '{implementation_date}'
+            GROUP by circumstances;
+            """
+        conn = sqlite3.connect(DATABASE)
+        cur = conn.cursor()
+        cur.execute(sql)
+        result = cur.fetchall()
+        circ_list = []
+        for circ in result:
+            circ_list.append(circ[0])
+        if "T" in circ_list or  "A" in circ_list:
+            j = True
+        else:
+            j = False
+        return j
