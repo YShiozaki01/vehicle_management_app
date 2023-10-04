@@ -54,15 +54,18 @@ class SelectVehicle:
         conn = get_db_connection()
         cur = conn.cursor()
         sql = f"""
-            SELECT a.*, b.department, c.name as dept_name FROM T車両台帳 as a
-            LEFT JOIN T車両履歴 as b
+            SELECT b.*, a.department, c.name as dept_name
+            FROM (SELECT a2.* FROM
+            (SELECT max(id) as max_id FROM T車両履歴
+            GROUP by company_use_number) as a1
+            LEFT JOIN T車両履歴 as a2
+            on a1.max_id = a2.id) as a
+            LEFT JOIN T車両台帳 as b
             on a.company_use_number = b.company_use_number
-            LEFT JOIN M部署 as c on b.department = c.code
+            LEFT JOIN M部署 as c on a.department = c.code
             WHERE a.company_use_number like '%{self.company_use_number}%'
-            AND a.body_number like '%{self.body_number}%'
-            AND b.department like '%{self.department}%'
-            AND b.id = (SELECT max(id) FROM T車両履歴
-            WHERE company_use_number like '%{self.company_use_number}%');
+            AND a.department like '%{self.department}%'
+            AND b.body_number like '%{self.body_number}%';
             """
         cur.execute(sql)
         result = cur.fetchall()
