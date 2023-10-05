@@ -46,6 +46,9 @@
 </form>
 
 {% if records %}
+{% if records == "emptiness" %}
+    <h3>該当なし</h3>
+{% else %}
     <table class="list", border="1">
         <tr>
         <th>部署</th>
@@ -62,8 +65,9 @@
         <td><a href="{{ url_for('show_detail',
             code=rec['company_use_number'])}}">履歴</a></td>
     </tr>
-{% endfor %}
+    {% endfor %}
 </table>
+{% endif %}
 {% endif %}
 <br>
 <a href="/">再検索</a>

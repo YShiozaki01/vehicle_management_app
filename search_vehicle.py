@@ -60,7 +60,11 @@ def get_search_record(search_keys):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(sql)
-    result = cur.fetchall()
+    if len(cur.fetchall()) == 0:
+        result = "emptiness"
+    else:
+        cur.execute(sql)
+        result = cur.fetchall()
     return result
 
 
