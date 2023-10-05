@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<form action="/result" method="post">
+    <table>
+        <tr>
+            <th>
+                <label>所属部署</label>
+            </th>
+            <td>
+                <select name="dept">
+                    <option value="00" disabled selected>--- 選択 ---</option>
+                    {% for dept in dept_list %}
+                        <option value="{{ dept[0] }}">{{ dept[1] }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th>
+                <label>社番</label>
+            </th>
+            <td>
+                <input type="text" name="company_use_number" value=""/>
+            </td>
+        </tr>
+        <tr>
+            <th>
+                <label>車両番号</label>
+            </th>
+            <td>
+                <input type="text" name="reg_number" value=""/>
+            </td>
+        </tr>
+        <tr>
+            <th>
+                <label>車体番号</label>
+            </th>
+            <td>
+                <input type="text" name="body_number" value=""/>
+            </td>
+        </tr>
+    </table>
+    <p></p>
+    <button type="submit">検索</button>
+</form>
+
+{% if records %}
+<table class="list" border="2">
+    <tr>
+        <th>部署</th>
+        <th>社番</th>
+        <th>車両番号</th>
+        <th>車体番号</th>
+    </tr>
+    {% for rec in records %}
+    <tr>
+        <td>{{ rec["dept_name"] }}</td>
+        <td>{{ (rec["company_use_number"]) }}</td>
+        <td>{{ (rec["reg_number"]) }}</td>
+        <td>{{ (rec["body_number"]) }}</td>
+        <td><a href="{{ url_for('show_detail',
+            code=rec['company_use_number'])}}">履歴</a></td>
+    </tr>
+{% endfor %}
+</table>
+{% endif %}
+<br>
+<a href="/">再検索</a>
+{% endblock %}
