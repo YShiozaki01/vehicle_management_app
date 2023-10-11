@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request
 import sqlite3
+import datetime
+from fuel_efficiency import FuelEfficiency
 
 app = Flask(__name__)
 
@@ -110,6 +112,7 @@ def result():
 
 @app.route("/show_detail/<code>")
 def show_detail(code):
+    # 指定車両の履歴を取得
     sql = f"""
         SELECT a.implementation_date,
         CASE
@@ -129,9 +132,34 @@ def show_detail(code):
     conn = sqlite3.connect(DATABASE)
     cur = conn.cursor()
     cur.execute(sql)
-    result = cur.fetchall()
+    result = list(cur.fetchall())
+    # 本年度の年数を取得
+    str_now = datetime.datetime.now()
+    this_year = int(str_now.strftime('%Y'))
+    # 本年度年間の走行距離と燃料使用量を取得して変数に追加
+    fe = FuelEfficiency(this_year, code)
+    fuel_data = []
+    # 1)年間走行距離
+    # 直近の走行距離を取得
+    data = fe.lastest_meter()
+    if data == None:
+        lastest_meter = 0
+    else:
+        lastest_meter = data["meter"]
+    # 前年度末の走行距離を取得
+    data = fe.start_meter()
+    if data == None:
+        start_meter = 0
+    else:
+        start_meter = data["meter"]
+    # 本年度の年間走行距離を取得
+    annual_mileage = lastest_meter - start_meter
+    fuel_data.append(annual_mileage)
+    # 2)年間燃料使用量
+    fuel_efficiency = fe.fuel_efficiency()
+    fuel_data.append(fuel_efficiency)
     return render_template("detail_record.html", cun=code,
-                           hist=result)
+                           hist=result, fuel_data=fuel_data)
 
 
 if __name__ == "__main__":

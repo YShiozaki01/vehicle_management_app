@@ -18,5 +18,11 @@
     </tr>
     {% endfor %}
 </table>
+<br>
+<p>本年度（本日時点）</p>
+<ul style="list-style:none;">
+    <li>走行距離:　{{ fuel_data[0] }}㎞</li>
+    <li>度燃料使用量:　{{ fuel_data[1] }}ℓ</li>
+</ul>
 {% endif %}
 {% endblock %}
